@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/**
+ * The palette is the APP's palette, lifted from agent-workspace's tokens.css
+ * rather than invented here, with the contrast ratios it recorded against each
+ * value. A landing page that does not look like the product it is selling is a
+ * second design to maintain and a small lie about what you are signing up for.
+ *
+ * Names are the app's own (Ink, Bistre, Sand, Tan, Clay, Taupe, Cream) so a
+ * change there can be found here by searching for the same word.
+ *
+ * Taupe is deliberately absent from body text below. The app's §3 rule: its
+ * best ratio anywhere is 3.7:1, so it is decoration only.
+ */
+@theme {
+  --color-ink: #160c08; /* app --bg-app */
+  --color-bistre: #26160b; /* app --bg-elevated */
+  --color-sunken: #0f0805; /* app --bg-sunken */
+
+  --color-sand: #d8b493; /* app --label,           10.0:1 AAA */
+  --color-tan: #ba9b7d; /* app --label-secondary,  7.4:1 AAA */
+  --color-clay: #987d65; /* app --label-tertiary,   5.0:1 AA  */
+  --color-taupe: #806854; /* app --label-quaternary, decorative ONLY */
+
+  --color-coffee: #433428; /* app --separator-opaque */
+  --color-cream: #f0cba5; /* app --accent */
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-tan);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/**
+ * The scroll reveal, and the whole animation budget for this site.
+ *
+ * IntersectionObserver toggles `data-shown`; everything else is two CSS
+ * properties. No animation library, per the house brief — a landing page that
+ * ships a motion runtime to fade four sections in has spent the user's
+ * bandwidth on the developer's convenience.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-reveal][data-shown] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Reduced motion gets no transition at all rather than a faster one. The app
+ * makes the same call: a request for less motion is not a request for quicker
+ * motion. Nothing is hidden here, so the content is identical either way.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* One visible focus style everywhere, since this page is keyboard-navigable by
+   contract and the default ring disappears against Ink. */
+:focus-visible {
+  outline: 2px solid var(--color-cream);
+  outline-offset: 3px;
+  border-radius: 2px;
+}

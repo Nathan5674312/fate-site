@@ -1,0 +1,15 @@
+# Cloudflare Pages + one Worker function. `functions/` would also work, but a
+# single Worker keeps the endpoint readable and testable on its own.
+name = "fate-site"
+compatibility_date = "2026-08-29"
+pages_build_output_dir = "dist"
+
+# The waitlist store. D1 is Cloudflare's SQLite: free tier, and the addresses
+# stay in an account Nathan owns rather than on a form vendor's server.
+#
+# database_id is filled in by `wrangler d1 create fate-waitlist` — it is not a
+# secret, but it does not exist until the database does. See README.
+[[d1_databases]]
+binding = "DB"
+database_name = "fate-waitlist"
+database_id = "REPLACE_AFTER_d1_create"
