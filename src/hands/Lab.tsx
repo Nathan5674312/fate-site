@@ -2,9 +2,13 @@
  * Tuning surface for the two hands. Dev only, at /?lab=hands.
  *
  * Everything here exists to be dialled against Nathan's Hermes reference:
- * contrast blows the highlights, dot size sets how coarse the halftone reads,
- * and the ink and ground can be swapped because the dither only ever paints
- * ink — the ground is the page behind it.
+ * contrast stretches the tonal range, pivot decides WHICH brightness sits in
+ * the middle of that stretch, dot size sets how coarse the halftone reads, and
+ * ink and ground can be swapped because the dither only ever paints ink.
+ *
+ * The Human/Machine switch matters: the two hands carry SEPARATE treatments.
+ * Every dither control below edits whichever hand is selected, and the readout
+ * shows only that one.
  *
  * The layer switches are the other half. docs/hands.md claims that real 8-12Hz
  * physiological tremor, alone, reads as a buzzing phone rather than as effort.
@@ -12,24 +16,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { DEFAULT_OPTIONS, Hands, INKS, type HandsOptions } from './Hands'
-
-/*
- * Tuning survives a reload. Without this, every dial-in is lost the moment the
- * dev server hot-reloads, which makes the lab useless for the one job it has.
- * Wrapped because a private window or blocked site data makes localStorage
- * throw on access rather than return null.
- */
-const STORE = 'fate.hands.look'
-
-function loadSaved(): Partial<HandsOptions> {
-  try {
-    const raw = localStorage.getItem(STORE)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
+import { DEFAULT_OPTIONS, Hands, INKS, type HandLook, type HandsOptions } from './Hands'
 
 const SPEEDS = [1, 0.5, 0.25] as const
 const DOTS = [
@@ -44,27 +31,47 @@ const GROUNDS = [
   { label: 'Blue', v: '#2f27d4' },
 ]
 
+/*
+ * Tuning survives a reload. Without this, every dial-in is lost the moment the
+ * dev server hot-reloads, which makes the lab useless for its one job. Wrapped
+ * because a private window or blocked site data makes localStorage throw on
+ * access rather than return null.
+ */
+const STORE = 'fate.hands.look.v2'
+
+function loadSaved(): Partial<HandsOptions> {
+  try {
+    const raw = localStorage.getItem(STORE)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+type Target = 'human' | 'machine'
+
 export default function Lab() {
   const [o, setO] = useState<HandsOptions>({ ...DEFAULT_OPTIONS, ...loadSaved() })
+  const [target, setTarget] = useState<Target>('human')
   const [ground, setGround] = useState(GROUNDS[0].v)
   const [copied, setCopied] = useState(false)
 
-  // Only the LOOK is persisted. Playing, speed and the layer solos are session
-  // state - restoring a paused, tremor-off hand on reload would read as a bug.
+  // Only the LOOKS persist. Playing, speed and the layer solos are session
+  // state — restoring a paused, tremor-off hand on reload would read as a bug.
   useEffect(() => {
     try {
-      localStorage.setItem(STORE, JSON.stringify({ look: o.look, pixelScale: o.pixelScale }))
+      localStorage.setItem(STORE, JSON.stringify({ human: o.human, machine: o.machine }))
     } catch {
       /* private window, or site data blocked. Tuning just will not persist. */
     }
-  }, [o.look, o.pixelScale])
+  }, [o.human, o.machine])
 
-  /* Exactly what would be pasted into Hands.tsx to make this the default. */
-  const snippet =
-    'DEFAULT_LOOK = ' + JSON.stringify(o.look) + '  |  pixelScale = ' + o.pixelScale
+  const current: HandLook = o[target]
   const set = (p: Partial<HandsOptions>) => setO((prev) => ({ ...prev, ...p }))
-  const setLook = (p: Partial<HandsOptions['look']>) =>
-    setO((prev) => ({ ...prev, look: { ...prev.look, ...p } }))
+  const setHand = (p: Partial<HandLook>) =>
+    setO((prev) => ({ ...prev, [target]: { ...prev[target], ...p } }))
+  const setLook = (p: Partial<HandLook['look']>) =>
+    setO((prev) => ({ ...prev, [target]: { ...prev[target], look: { ...prev[target].look, ...p } } }))
 
   const chip = (on: boolean) =>
     `rounded border px-2 py-1 text-[11px] transition-colors ${
@@ -73,7 +80,32 @@ export default function Lab() {
         : 'border-white/25 text-white/70 hover:border-white/60'
     }`
 
-  const inkOf = (o.look.ink ?? [244, 244, 245]).join(',')
+  const inkOf = (current.look.ink ?? [244, 244, 245]).join(',')
+  const readout = `${target}: ${JSON.stringify(current.look)} pixelScale=${current.pixelScale}`
+
+  const num = (
+    label: string,
+    key: 'contrast' | 'pivot' | 'threshold',
+    min: number,
+    max: number,
+    fallback: number,
+  ) => (
+    <label className="flex items-center gap-1.5 text-[11px] text-white/70">
+      {label}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={0.01}
+        value={current.look[key] ?? fallback}
+        onChange={(e) => setLook({ [key]: Number(e.target.value) })}
+        className="w-20 accent-white"
+      />
+      <span className="w-8 tabular-nums text-white">
+        {(current.look[key] ?? fallback).toFixed(2)}
+      </span>
+    </label>
+  )
 
   return (
     <div className="relative h-svh w-full overflow-hidden" style={{ background: ground }}>
@@ -91,8 +123,6 @@ export default function Lab() {
         <button onClick={() => set({ feintNonce: o.feintNonce + 1 })} className={chip(false)}>
           Feint
         </button>
-
-        <span className="mx-1 h-4 w-px bg-white/20" />
         <button
           onClick={() => set({ gain: { ...o.gain, effort: o.gain.effort > 0 ? 0 : 1 } })}
           className={chip(o.gain.effort > 0)}
@@ -108,22 +138,29 @@ export default function Lab() {
         <button onClick={() => set({ reduced: !o.reduced })} className={chip(o.reduced)}>
           Reduced
         </button>
-
-        <span className="mx-1 h-4 w-px bg-white/20" />
         <button onClick={() => set({ ditherOn: !o.ditherOn })} className={chip(o.ditherOn)}>
           Dither
         </button>
+
+        {/* Everything past this point edits ONE hand. */}
+        <span className="mx-1 h-5 w-px bg-white/30" />
+        <button onClick={() => setTarget('human')} className={chip(target === 'human')}>
+          Human ↙
+        </button>
+        <button onClick={() => setTarget('machine')} className={chip(target === 'machine')}>
+          Machine ↗
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-white/20" />
         {DOTS.map((d) => (
           <button
             key={d.label}
-            onClick={() => set({ pixelScale: d.v })}
-            className={chip(o.pixelScale === d.v)}
+            onClick={() => setHand({ pixelScale: d.v })}
+            className={chip(current.pixelScale === d.v)}
           >
             {d.label}
           </button>
         ))}
-
-        <span className="mx-1 h-4 w-px bg-white/20" />
         {Object.entries(INKS).map(([name, rgb]) => (
           <button
             key={name}
@@ -133,79 +170,47 @@ export default function Lab() {
             {name}
           </button>
         ))}
+
+        <span className="mx-1 h-4 w-px bg-white/20" />
+        {num('contrast', 'contrast', 0.6, 5, 1.9)}
+        {num('pivot', 'pivot', 0.3, 0.9, 0.6)}
+        {num('ink level', 'threshold', 0.1, 0.9, 0.5)}
+
+        <span className="mx-1 h-4 w-px bg-white/20" />
         {GROUNDS.map((g) => (
           <button key={g.label} onClick={() => setGround(g.v)} className={chip(ground === g.v)}>
             bg {g.label}
           </button>
         ))}
-
-        <span className="mx-1 h-4 w-px bg-white/20" />
-        <label className="flex items-center gap-1.5 text-[11px] text-white/70">
-          contrast
-          <input
-            type="range"
-            min={0.6}
-            max={4}
-            step={0.05}
-            value={o.look.contrast ?? 1.6}
-            onChange={(e) => setLook({ contrast: Number(e.target.value) })}
-            className="w-20 accent-white"
-          />
-          <span className="w-8 tabular-nums text-white">{(o.look.contrast ?? 1.6).toFixed(2)}</span>
-        </label>
-        <label className="flex items-center gap-1.5 text-[11px] text-white/70">
-          pivot
-          <input
-            type="range"
-            min={0.3}
-            max={0.9}
-            step={0.01}
-            value={o.look.pivot ?? 0.6}
-            onChange={(e) => setLook({ pivot: Number(e.target.value) })}
-            className="w-20 accent-white"
-          />
-          <span className="w-8 tabular-nums text-white">{(o.look.pivot ?? 0.6).toFixed(2)}</span>
-        </label>
-        <label className="flex items-center gap-1.5 text-[11px] text-white/70">
-          ink level
-          <input
-            type="range"
-            min={0.15}
-            max={0.85}
-            step={0.01}
-            value={o.look.threshold ?? 0.5}
-            onChange={(e) => setLook({ threshold: Number(e.target.value) })}
-            className="w-20 accent-white"
-          />
-          <span className="w-8 tabular-nums text-white">{(o.look.threshold ?? 0.5).toFixed(2)}</span>
-        </label>
       </div>
 
-      <div className="absolute top-3 right-3 flex max-w-[20rem] flex-col items-end gap-1">
+      <div className="absolute top-3 right-3 flex max-w-[22rem] flex-col items-end gap-1">
         <button
           onClick={() => {
-            navigator.clipboard?.writeText(snippet).then(
-              () => { setCopied(true); setTimeout(() => setCopied(false), 1600) },
+            navigator.clipboard?.writeText(readout).then(
+              () => {
+                setCopied(true)
+                setTimeout(() => setCopied(false), 1600)
+              },
               () => setCopied(false),
             )
           }}
           className={chip(copied)}
         >
-          {copied ? 'Copied' : 'Copy settings'}
+          {copied ? 'Copied' : `Copy ${target} settings`}
         </button>
         {/* Always visible and selectable, because clipboard access can be
-            refused and the numbers are the whole point of this page. */}
-        <code className="max-w-full overflow-x-auto rounded border border-white/15 bg-black/60 px-2 py-1 text-right text-[10px] leading-relaxed whitespace-pre text-white/60 select-all">
-          {JSON.stringify(o.look)}
-          {'  |  pixelScale: '}
-          {o.pixelScale}
+            refused and these numbers are the entire point of the page. */}
+        <code className="max-w-full overflow-x-auto rounded border border-white/15 bg-black/60 px-2 py-1 text-right text-[10px] leading-relaxed text-white/60 select-all">
+          {readout}
         </code>
       </div>
 
-      <p className="absolute top-3 left-3 max-w-[22rem] text-[11px] leading-relaxed text-white/45 mix-blend-difference">
-        God&apos;s hand = human, straining. Adam&apos;s hand = machine, withholding.
-        Two photographs, moved and dithered — nothing redrawn. The second
-        further-reaching pose is not made yet, so the fingers do not extend.
+      <p className="absolute top-3 left-3 max-w-[20rem] text-[11px] leading-relaxed text-white/45 mix-blend-difference">
+        God&apos;s hand = human, straining. Adam&apos;s hand = machine,
+        withholding. Two photographs, moved and dithered — nothing redrawn. The
+        second further-reaching pose is not made yet, so the fingers do not
+        extend.
       </p>
     </div>
   )

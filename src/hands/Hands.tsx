@@ -38,6 +38,21 @@ import {
   rng,
 } from './motion'
 
+/**
+ * The dither treatment for ONE hand.
+ *
+ * Per hand rather than shared, because the two are not the same picture: the
+ * fresco lit them differently, the crops came from different parts of the
+ * plaster, and Nathan tuned the human to a dense, high-contrast bone treatment
+ * that would not suit the machine. Sharing one setting forces a compromise on
+ * both.
+ */
+export type HandLook = {
+  look: DitherOptions
+  /** Dot size, as a fraction of native resolution. */
+  pixelScale: number
+}
+
 export type HandsOptions = {
   playing: boolean
   speed: number
@@ -45,21 +60,43 @@ export type HandsOptions = {
   reduced: boolean
   feintNonce: number
   ditherOn: boolean
-  look: DitherOptions
-  pixelScale: number
+  human: HandLook
+  machine: HandLook
 }
 
 /*
- * Tuned against the Hermes reference Nathan supplied: one saturated ink, blown
- * highlights, crushed shadows, detail deliberately destroyed. High contrast is
- * what does most of that - the fresco is very flat by comparison.
+ * THE HUMAN. Dialled in by Nathan, 2026-08-30, against the Hermes reference.
+ *
+ * Very high contrast with a low ink threshold: dense, bold, blown out. The low
+ * threshold (0.24) is what floods it - the test is `v + (0.5 - threshold) > t`,
+ * so a LOWER number means MORE ink, which is the opposite of what the name
+ * suggests. Fine dots at 0.8 keep the halftone tight rather than chunky.
  */
-export const DEFAULT_LOOK: DitherOptions = {
-  threshold: 0.5,
-  contrast: 1.9,
-  gamma: 1,
-  pivot: 0.62,
-  ink: [92, 84, 255],
+export const HUMAN_LOOK: HandLook = {
+  look: {
+    threshold: 0.24,
+    contrast: 3.45,
+    gamma: 1,
+    pivot: 0.59,
+    ink: [244, 244, 245],
+  },
+  pixelScale: 0.8,
+}
+
+/*
+ * THE MACHINE. Still on the first pass - saturated blue, softer contrast,
+ * coarser dots. Left deliberately different from the human until Nathan tunes
+ * it, since a colour split between the two hands may itself be the design.
+ */
+export const MACHINE_LOOK: HandLook = {
+  look: {
+    threshold: 0.5,
+    contrast: 1.9,
+    gamma: 1,
+    pivot: 0.62,
+    ink: [92, 84, 255],
+  },
+  pixelScale: 0.55,
 }
 
 /** Ink presets. The ground is the page behind, never painted by the dither. */
@@ -76,8 +113,8 @@ export const DEFAULT_OPTIONS: HandsOptions = {
   reduced: false,
   feintNonce: 0,
   ditherOn: true,
-  look: DEFAULT_LOOK,
-  pixelScale: 0.55,
+  human: HUMAN_LOOK,
+  machine: MACHINE_LOOK,
 }
 
 /* The second, further-reaching poses. Undefined until that art exists. */
@@ -196,8 +233,8 @@ export function Hands({ options }: { options: HandsOptions }) {
         srcB={HUMAN_POSE_B}
         className="absolute bottom-[26%] left-[3%] w-[46%]"
         baseTransform="scaleX(-1) rotate(-18deg)"
-        look={options.look}
-        pixelScale={options.pixelScale}
+        look={options.human.look}
+        pixelScale={options.human.pixelScale}
         motion={humanMotion}
         ditherOn={options.ditherOn}
       />
@@ -206,8 +243,8 @@ export function Hands({ options }: { options: HandsOptions }) {
         srcB={MACHINE_POSE_B}
         className="absolute top-[16%] left-[53%] w-[30%]"
         baseTransform="scaleX(-1) rotate(14deg)"
-        look={options.look}
-        pixelScale={options.pixelScale}
+        look={options.machine.look}
+        pixelScale={options.machine.pixelScale}
         motion={machineMotion}
         ditherOn={options.ditherOn}
       />
