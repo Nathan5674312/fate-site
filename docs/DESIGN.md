@@ -112,98 +112,78 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 
 ## 9. The fold — Creation of Adam, inverted
 
-**Status: concept locked, nothing built.** The first attempt was built, shown,
-and deleted (commit 7e83c63). Nathan draws the human hand and will specify how
-it is to be drawn; the code is mine. Nothing gets built until that arrives.
+**Status: concept locked. Nothing built.** Waiting on Nathan's two images.
 
-### The composition
+### Composition
 
-- **Human hand — enters BOTTOM LEFT, reaching to TOP LEFT, as hard as it can.**
-  Maximum strain. Nathan owns this drawing.
-- **The machine — descends from above and holds back SLIGHTLY.** Not a chasm.
-  A near-touch, closer to Michelangelo's actual inch than to a refusal.
-- The gap is the subject, and it is small.
+- **Human — enters BOTTOM LEFT, straining up-left, SHAKING.** Anatomically
+  imperfect, never resolving, trembling continuously. Nathan draws it.
+- **Machine — TOP RIGHT, descending, holding back slightly.** Converges on an
+  anatomically perfect hand and then holds still.
+- They meet left of centre, off the dead-centre axis. The gap is small.
 
-### The machine is a DIFFUSION DENOISE
+### The machine self-improves on load
 
-Decided 2026-08-30. A hand sharp and certain at the wrist, dissolving into
-structured noise toward the fingertips.
+Nathan, 2026-08-30. The ouroboros, but temporal rather than drawn.
 
-**Why this and not the others.** In a beam-search tree, a segmentation box or a
-withdrawing attention mask, the machine *decides* to hold back — which casts it
-as a villain making a choice. In diffusion it stops short because it **has not
-resolved yet**. The withholding and the medium are the same fact. That is both
-more unsettling and more honest about how these systems actually behave, and it
-is the only option where "holds back slightly" is naturally expressible:
-convergence is a gradient, so the size of the gap is a matter of degree rather
-than a staged pause.
+**On load the machine hand is a jumbled mess, and over several discrete
+generations it corrects itself into a perfect hand — which then does not
+reach.** The recursion is the mechanism, not an illustration of one: the page
+load IS the training run. The literal snake-eating-tail is dropped.
 
-**Why it reads to an insider.** Anyone who has watched a diffusion preview
-resolve has seen this exact image. It requires no explanation and it is nothing
-like consumer AI art.
+**Why this passes the insider test.** The payload is that AI cannot draw hands —
+the canonical joke, and every practitioner has seen the six-fingered results. A
+machine hand that begins malformed and iterates into anatomical perfection is
+instantly legible to exactly that audience, and invisible as a gag to everyone
+else, who simply sees something resolve.
 
-### Two constraints that killed the first attempt — do not repeat them
+**Why the asymmetry is the thesis.** The machine achieves perfection and holds
+still, withholding. The human is imperfect and shaking, and never resolves. In
+the original, Adam is an idealised body receiving from the divine; here the
+machine is the perfect one and the human is the flawed thing straining. One hand
+is still because it is finished; the other never stops because it cannot arrive.
 
-1. **SILHOUETTE FIRST.** The first machine was texture with no outline, so there
-   was nothing to recognise before the detail resolved, and at fold scale the
-   detail never resolves. Michelangelo works because both hands are unmistakable
-   SHAPES at thumbnail size, with detail living inside the shape. The denoise
-   must therefore be **hard-edged and fully certain at the wrist**, and only
-   dissolve in the last third. If it reads as noise at 200px wide, it is wrong.
-2. **THE TERMINUS TEST.** "Holds back slightly" means a near-touch, which
-   requires a definable fingertip — one point that can come within an inch.
-   This is what ruled out point clouds, latent-space renders, gradient fields
-   and raw attention texture: none of them has a tip, so none can almost-touch
-   anything.
+### Three rules this depends on
 
-### Rendering: 1-bit dither over a generated source (2026-08-30)
+1. **Iteration, not a glitch reveal.** Five to eight DISCRETE generations, each
+   recognisably a better attempt, with a beat between them. Smooth noise
+   dissolving into clarity is the loading-spinner version and reads as
+   decoration. Wrong fingers → fewer wrong → nearly right → right.
+2. **The resting state is the PERFECT hand, never the jumbled one.** Reduced
+   motion, blocked JS or any failure shows the finished hand holding back. The
+   mess is only for people who are there for it.
+3. **Runs once, stays converged.** Looping back to jumbled would undo the
+   statement. If it needs life afterwards, a micro-refinement that never quite
+   settles is the honest version.
 
-**This is a deliberate exception to §3 rule 3 (no AI-generated hero art).**
-Nathan's call, and the reasoning is sound rather than a fudge.
+### Assets needed from Nathan
 
-**Why the exception holds.** The reason this audience detects generated imagery
-is the RENDERING — plastic lighting, smooth uncanny surfaces, airbrushed sheen.
-A hard 1-bit dither discards all of it and keeps only shape and structure, which
-is why the reference images read as screen-print rather than as AI. The tell is
-destroyed by the process.
+- **One image: the final, perfect machine hand**, top-right, slightly withheld.
+  The failed generations are derived BACKWARDS from it by programmatic
+  degradation — so it converges on exactly the approved hand, he makes it once,
+  and generation count and severity stay tunable without regenerating.
+- **The human hand.** The tremor is added in code: a shake must be continuous
+  and must never repeat identically, which a static asset cannot do.
 
-**Why it is not fully defused.** Dither preserves SILHOUETTE, and hands are the
-single worst subject generative models draw. Merged fingers, wrong knuckle
-counts, thumbs on the wrong side — all survive dithering intact, and this image
-is entirely hands. So anatomy is checked BEFORE the effect, never after.
+### Build notes
 
-**Process.** Nathan generates; the raw output comes to me undithered; the dither
-is applied in code (Atkinson — the open, crisp pattern in his references), so
-threshold, dot scale and tint stay adjustable. Baking the effect in an editor
-would mean regenerating the source for every tweak.
-
-**Source requirements**, because dither lives on local contrast:
-one hard light source with deep shadows; empty background; both hands large in
-frame and near-touching; photographic or engraved rather than flat-colour
-illustration; high resolution, since dithering downscales badly.
-
-**Checks on arrival:** five fingers per hand, plausible joints, and whether the
-machine hand still reads as a MACHINE once dithered. If it comes back as merely
-a second human hand, the diffusion-denoise treatment returns in some form.
-
-**Note on colour:** all three references are blue duotone, not mono. Nathan said
-"black and white effect", so the base is 1-bit mono and any tint is applied
-after — one variable, changeable at any time, so the open palette question in §4
-is not accidentally decided by a reference image.
-
-### Build notes for when the human hand arrives
-
-- Canvas or SVG, in the page, from real geometry. **No generated image, no
-  stock** (roadmap note 12 and §3 rule 3).
-- The noise must be *structured*, not white noise — banded/blocky like a real
-  intermediate denoising step, not television static.
-- The gap must be **computed from the human fingertip**, not typed. The first
-  attempt hard-coded endpoints and two of them ended up past the fingertip,
-  inverting the meaning. Derive it, so moving the hand moves the gap.
-- Certainty gradient runs along the arm axis, not screen-vertically, so it still
-  reads correctly if the composition is re-angled.
+- 1-bit Atkinson dither in code over both sources (see the rendering section
+  above). Threshold, dot scale and tint stay adjustable.
+- The gap is COMPUTED from the human fingertip, never typed. The deleted
+  attempt hard-coded endpoints and two landed past the finger, inverting the
+  meaning.
+- Anatomy is checked BEFORE the dither: five fingers, plausible joints. Dither
+  preserves silhouette, so it hides nothing structural.
+- Silhouette first. The deleted attempt was texture with no outline and read as
+  grey noise at fold scale.
 
 ## 7. Log
+
+- **2026-08-30** — Machine locked: an ouroboros expressed as SELF-IMPROVEMENT
+  ON LOAD — jumbled hand iterating into a perfect one that then withholds,
+  against a human hand that shakes and never resolves. Diffusion dropped,
+  literal snake dropped, node-web and logic gates rejected as cliché.
+  Machine is TOP RIGHT, human bottom-left. See §9.
 
 - **2026-08-30** — Rendering decided: generate the source, then 1-bit dither
   it in code. Logged as a deliberate exception to the no-AI-art rule, with
