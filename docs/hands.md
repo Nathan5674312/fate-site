@@ -21,13 +21,19 @@ Nathan: *"stop trying to draw the hand from scratch... everytime you make it
 from scratch its really bad we need to do a different way."* Correct, and the
 new direction makes almost all of the rigging unnecessary:
 
-- **The human is Michelangelo's Adam hand**, fingers reaching further.
-- **The machine is the SAME image, mirrored** — not shaking, *"relaxed and
-  calculated."*
+- **The human is GOD'S hand.** It is the one straining: arm at full extension,
+  index finger thrust out ahead of the others, tendons up. It is the reach.
+- **The machine is ADAM'S hand.** Limp. The wrist droops, the fingers hang
+  unsupported, the whole thing is unbothered. It is the withholding.
 
-One asset, used twice. The asymmetry stops being two drawings and becomes two
-*behaviours* applied to one picture, which is both far less work and a stronger
-idea: the machine is literally our own reflection, declining to close the gap.
+Nathan's casting, 2026-08-30, and it is the right way round. The human now
+occupies the creator's pose while the machine takes the posture of the one being
+created and cannot be troubled to reach back. Both gestures were already in the
+fresco; only the labels swap. It also means no hand has to be invented, argued
+about, or generated — the two most famous hands in Western art are already doing
+exactly what this concept needs.
+
+Two crops, one source file, nothing drawn.
 
 ### What that needs, technically
 
@@ -68,14 +74,34 @@ the US (*Bridgeman v. Corel*). So the source is safe to use and to modify.
 
 ## 2. What is needed to build it
 
-1. **The Adam hand image** — cropped to the hand and forearm, background
-   removed or removable, as large as can be found. This is the only blocking
-   asset.
-2. Nothing else. The machine is this image with `scaleX(-1)`.
+**Done.** `art-src/creation-of-adam.jpg` — the Commons file
+*Michelangelo - Creation of Adam (cropped).jpg*, 3524x1599, public domain.
+Both crops are cut from it into `public/art/`.
 
-If the fingers should visibly extend, one extra deliverable: the index finger
-cut onto its own layer, with the gap behind it filled. That can come later —
-the shake and the drift work without it.
+🔴 **THE ONE REMAINING BLOCKER IS THE BACKGROUND**, and it will not come out
+automatically. Measured off the actual crop:
+
+- Plaster sits at 200-259 luminance, but hand highlights reach 195 — the ranges
+  overlap, so a brightness key clips the knuckles and the wrist.
+- Saturation does not separate them either. Fresco plaster is warm
+  (232,224,201) and so is flesh (164,140,92); red-minus-blue is ~31-74 for
+  plaster and ~70-83 for skin. They sit on top of each other.
+
+So it needs a real mask. Three ways, in order of preference:
+
+1. **Cut them out by hand** in any image editor, once, and commit the PNGs.
+   Ten minutes each with a pen tool, and it is the only option that is
+   definitely right.
+2. **An SVG `clipPath` traced along the outline**, stored as points in the repo
+   so it can be nudged. No editor needed and it is data rather than artwork,
+   but tracing by eye is fiddly and a few units off reads as a bad cut-out.
+3. A background-removal model. Extra dependency, and it would need the image
+   sent to something external.
+
+Until then the two hands sit on visible rectangles of fresco.
+
+Deferred: the fingers reaching further needs the index finger cut onto its own
+layer. The shake and the drift work without it.
 
 ## 3. The human hand — strain is TWO layers, not one
 

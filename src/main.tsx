@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
@@ -12,8 +12,19 @@ import './index.css'
  */
 document.documentElement.classList.add('motion')
 
+/* The hands prototype, at /?lab=hands. Lazy, so it costs real visitors nothing. */
+const Lab = lazy(() => import('./hands/Lab'))
+const showLab =
+  typeof location !== 'undefined' && new URLSearchParams(location.search).get('lab') === 'hands'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {showLab ? (
+      <Suspense fallback={null}>
+        <Lab />
+      </Suspense>
+    ) : (
+      <App />
+    )}
   </StrictMode>,
 )
