@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Fold } from './components/Fold'
 import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
 
 /**
@@ -170,8 +171,9 @@ export default function App() {
         * else to remove. What is left is the claim, the line under it and the
         * way in - the honest minimum a fold has to carry.
         */}
-      <section className="flex min-h-[72svh] flex-col justify-center px-6 pt-24 pb-16">
-        <div className="mx-auto w-full max-w-3xl">
+      <section className="relative isolate flex min-h-[86svh] flex-col justify-center overflow-hidden px-6 pt-24 pb-16">
+        <Fold />
+        <div className="relative z-10 mx-auto w-full max-w-3xl">
           {/* No brand eyebrow. "Completely remove the divine construc letters"
               taken literally - the studio name appears only in the footer
               credit now. One line to restore if that went too far. */}

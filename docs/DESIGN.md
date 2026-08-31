@@ -110,7 +110,60 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 - Reveal once, then disconnect the observer. A page that dismantles itself on
   scroll-up looks broken.
 
+## 9. The fold — Creation of Adam, inverted (2026-08-30)
+
+Nathan's concept, and the first thing to fill the gap the arch left.
+
+**The composition.** Michelangelo's near-touch, with the roles reversed:
+
+- **Human hand, from the BOTTOM LEFT, straining.** Not Adam's languid wrist —
+  reaching *hard*, tendons out, arm extended past comfort. The effort is the
+  whole point.
+- **AI, from the TOP, coming down — and PULLING BACK.** Withheld, not offered.
+- **The gap between them is the subject.** In the original it is about an inch
+  and closing. Here it is wider and opening.
+
+**Why the inversion earns its place.** The original is God granting life to a
+passive man. Reversed, it says the thing this product actually believes: the
+capability is there, people are straining for it, and it is not meeting them
+halfway. It is also faintly uncomfortable, which is why it will not read as
+decoration.
+
+**How AI gets depicted.** Nathan: *"whatever can describe AI best — not to the
+user, but to someone that knows what AI is capable of."* So the test is
+insider recognition, not consumer legibility. That rules out the whole cliché
+set: robot hands, glowing brains, circuit-board traces, humanoid androids,
+blue neural-network fireworks. Someone who works with models should see it and
+know immediately; someone who does not should still read "the other side".
+
+**Hard constraint — this cannot be an AI-generated image.** Roadmap note 12 and
+§3 rule 3 of this file both ban it, and this audience detects and punishes it.
+It also cannot be stock. So it is **built**: vector and/or canvas, in the page,
+from real geometry. Which is on-message anyway — the site is supposed to be the
+proof the tool built it.
+
+**Open sub-question.** The human hand is the hard half. An anatomically
+convincing hand is not something to hand-author as SVG paths from nothing.
+Options, in preference order:
+1. Derive an outline from the original fresco, which is public domain (1512).
+2. Render the hand as *structure* rather than illustration — contour lines, a
+   wireframe, a field of strain — so it never has to pass as anatomy.
+3. Commission or source a public-domain vector of the Adam hand specifically.
+
+**Scope note.** Nathan said "the background of the app" — read here as the
+site's fold, since that is what we are building. Flag if he meant the Electron
+app's own background.
+
 ## 7. Log
+
+- **2026-08-30** — Fold built. Machine = causal attention mask (chosen on the
+  insider-recognition test). Hand = Adam's gesture under load, redrawn from
+  Nathan's reference photo rather than used, because it is unlicensed stock.
+  Direction taken from the newer instruction: arm enters bottom-RIGHT,
+  reaching up-left. His first message said bottom-left — unconfirmed.
+
+- **2026-08-30** — Creation of Adam concept for the fold, inverted: human
+  straining from bottom-left, AI descending and withholding. See §9.
 
 - **2026-08-30** — "completely remove the graph and the divine construc
   letters." Both cut. `Hero.tsx` and `hero.css` deleted; the brand eyebrow
@@ -139,4 +192,10 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
   something else to remove. Waiting on direction.
 - None of the three surfaces are built. The graph existed only in the doorway
   and went with it.
-- GSAP is installed but unused. Remove it if motion is not coming back.
+- GSAP is installed but unused. The fold is still static — the retraction is
+  drawn, not animated. Motion is the obvious next step.
+- **Arm direction unconfirmed.** First instruction said bottom-LEFT, the later
+  one said bottom-right to top-left. Built to the later one.
+- The hand is contour/wireframe, not filled anatomy. Deliberate — a badly drawn
+  realistic hand at fold size is far worse than a deliberately abstract one —
+  but it is a style choice Nathan has not seen yet.

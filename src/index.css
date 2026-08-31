@@ -110,3 +110,49 @@ body {
   outline-offset: 3px;
   border-radius: 2px;
 }
+
+/**
+ * THE FOLD ART — Creation of Adam, inverted.
+ *
+ * Sits behind the fold's text, full bleed. `slice` on the SVG so it always
+ * fills rather than letterboxing, and the text above it keeps its own contrast
+ * because the art is dimmed rather than because the type carries a scrim.
+ */
+.fold {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fold-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The machine glows; the human does not. The asymmetry is the point - one side
+   is radiating capability, the other is only reaching for it. */
+.fold-machine {
+  filter: drop-shadow(0 0 1.5px color-mix(in oklab, var(--color-glow) 55%, transparent));
+}
+
+/*
+ * Keeps the art from competing with the headline. A dark wash from the left,
+ * where the copy sits, fading out to the right where the composition lives.
+ * Cheaper and more controllable than reducing the art's own opacity, which
+ * would flatten the machine's glow along with everything else.
+ */
+.fold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    var(--color-ink) 0%,
+    color-mix(in oklab, var(--color-ink) 88%, transparent) 34%,
+    color-mix(in oklab, var(--color-ink) 30%, transparent) 62%,
+    transparent 100%
+  );
+}
