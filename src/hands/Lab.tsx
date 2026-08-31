@@ -11,8 +11,25 @@
  * Solo either layer and see; that beats taking it on trust.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DEFAULT_OPTIONS, Hands, INKS, type HandsOptions } from './Hands'
+
+/*
+ * Tuning survives a reload. Without this, every dial-in is lost the moment the
+ * dev server hot-reloads, which makes the lab useless for the one job it has.
+ * Wrapped because a private window or blocked site data makes localStorage
+ * throw on access rather than return null.
+ */
+const STORE = 'fate.hands.look'
+
+function loadSaved(): Partial<HandsOptions> {
+  try {
+    const raw = localStorage.getItem(STORE)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
 
 const SPEEDS = [1, 0.5, 0.25] as const
 const DOTS = [
@@ -28,8 +45,23 @@ const GROUNDS = [
 ]
 
 export default function Lab() {
-  const [o, setO] = useState<HandsOptions>(DEFAULT_OPTIONS)
+  const [o, setO] = useState<HandsOptions>({ ...DEFAULT_OPTIONS, ...loadSaved() })
   const [ground, setGround] = useState(GROUNDS[0].v)
+  const [copied, setCopied] = useState(false)
+
+  // Only the LOOK is persisted. Playing, speed and the layer solos are session
+  // state - restoring a paused, tremor-off hand on reload would read as a bug.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORE, JSON.stringify({ look: o.look, pixelScale: o.pixelScale }))
+    } catch {
+      /* private window, or site data blocked. Tuning just will not persist. */
+    }
+  }, [o.look, o.pixelScale])
+
+  /* Exactly what would be pasted into Hands.tsx to make this the default. */
+  const snippet =
+    'DEFAULT_LOOK = ' + JSON.stringify(o.look) + '  |  pixelScale = ' + o.pixelScale
   const set = (p: Partial<HandsOptions>) => setO((prev) => ({ ...prev, ...p }))
   const setLook = (p: Partial<HandsOptions['look']>) =>
     setO((prev) => ({ ...prev, look: { ...prev.look, ...p } }))
@@ -147,6 +179,27 @@ export default function Lab() {
           />
           <span className="w-8 tabular-nums text-white">{(o.look.threshold ?? 0.5).toFixed(2)}</span>
         </label>
+      </div>
+
+      <div className="absolute top-3 right-3 flex max-w-[20rem] flex-col items-end gap-1">
+        <button
+          onClick={() => {
+            navigator.clipboard?.writeText(snippet).then(
+              () => { setCopied(true); setTimeout(() => setCopied(false), 1600) },
+              () => setCopied(false),
+            )
+          }}
+          className={chip(copied)}
+        >
+          {copied ? 'Copied' : 'Copy settings'}
+        </button>
+        {/* Always visible and selectable, because clipboard access can be
+            refused and the numbers are the whole point of this page. */}
+        <code className="max-w-full overflow-x-auto rounded border border-white/15 bg-black/60 px-2 py-1 text-right text-[10px] leading-relaxed whitespace-pre text-white/60 select-all">
+          {JSON.stringify(o.look)}
+          {'  |  pixelScale: '}
+          {o.pixelScale}
+        </code>
       </div>
 
       <p className="absolute top-3 left-3 max-w-[22rem] text-[11px] leading-relaxed text-white/45 mix-blend-difference">
