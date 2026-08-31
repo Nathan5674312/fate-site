@@ -16,8 +16,8 @@ Evidence for the category claims below lives in `docs/design-research.md`
 | Brand on the page | **DIVINE CONSTRUC** — no T | Nathan, 2026-08-30 |
 | Relationship | Fate is the project; Divine Construc is the umbrella he ships everything under | Nathan |
 | The one thing to remember | **It already understands your folder** | Nathan, chosen from four |
-| Hero composition | Enormous backlit type arcing over a small lit doorway; scale gap does the work | Nathan (ASCENSION reference) |
-| What is in the doorway | The live graph. The light *is* the product | Decided here, backed by research §C1 |
+| ~~Hero composition~~ | ~~Arced type over a lit doorway~~ → **CUT 2026-08-30.** Built, then removed. No replacement concept yet | Nathan |
+| ~~Graph in the doorway~~ | ~~The light is the product~~ → **CUT 2026-08-30** with the arch. Whether the graph returns lower down is open | Nathan |
 | Three surfaces required | Graph · database/table · canvas pipeline board | Nathan |
 | Surfaces are live DOM | Not screenshots. Also the "I made this with the tool" proof | Nathan + research §C2 |
 | Quality bar | The work curated on recent.design / godly — award tier | Nathan |
@@ -25,6 +25,11 @@ Evidence for the category claims below lives in `docs/design-research.md`
 
 ## 2. Open — waiting on Nathan
 
+- **What the fold is.** The arch and the graph are cut and nothing replaced
+  them. It currently carries the claim, the sub and the CTA and nothing else.
+- **Is the graph out of the whole site, or only the fold?** The three surfaces
+  (graph, table, canvas) were a locked requirement; only the hero one was cut.
+  `src/demo.ts` and `src/lib/layout.ts` are kept and unused pending the answer.
 - **The palette.** See §4. Currently the single biggest unknown.
 - Whether the giant wordmark repeats at the foot of the page (the Hermes move).
 - Whether the page inverts to a light ground below the fold.
@@ -107,6 +112,12 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 
 ## 7. Log
 
+- **2026-08-30** — "completely remove the graph and the divine construc
+  letters." Both cut. `Hero.tsx` and `hero.css` deleted; the brand eyebrow
+  went too, reading "completely" literally. Dark ground confirmed as liked
+  and kept. Bundle fell 272kB to 197kB with GSAP no longer imported - it is
+  still installed, on the assumption motion returns.
+
 - **2026-08-30** — ASCENSION reference: giant backlit arced type over a lit
   doorway. Built. Graph placed inside the doorway as the light source.
 - **2026-08-30** — "construc, no t". Brand corrected on the page.
@@ -124,5 +135,8 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 - **Fraunces is a placeholder display face.** It was chosen before any reference
   existed. The Hermes reference points at a higher-contrast Didone-ish caps
   face; revisit once the palette lands.
-- The three surfaces below the fold are not built yet — only the graph, and only
-  inside the doorway.
+- The fold is bare. Deliberately: inventing a replacement concept would just be
+  something else to remove. Waiting on direction.
+- None of the three surfaces are built. The graph existed only in the doorway
+  and went with it.
+- GSAP is installed but unused. Remove it if motion is not coming back.

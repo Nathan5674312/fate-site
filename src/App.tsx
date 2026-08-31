@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BRAND, CLAIMS, FOOTER, LINKS, STATUS, WAITLIST } from './content'
-import { Hero } from './components/Hero'
+import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
 
 /**
  * The whole page. One file because it is one page — a router and a components/
@@ -162,7 +161,35 @@ export default function App() {
         Skip to the waitlist
       </a>
 
-      <Hero />
+      {/*
+        * THE FOLD, deliberately bare.
+        *
+        * The arched DIVINE CONSTRUC and the graph-in-a-doorway were both cut on
+        * 2026-08-30 (see docs/DESIGN.md section 7). Nothing has been invented to
+        * fill the gap: guessing at a replacement concept would just be something
+        * else to remove. What is left is the claim, the line under it and the
+        * way in - the honest minimum a fold has to carry.
+        */}
+      <section className="flex min-h-[72svh] flex-col justify-center px-6 pt-24 pb-16">
+        <div className="mx-auto w-full max-w-3xl">
+          {/* No brand eyebrow. "Completely remove the divine construc letters"
+              taken literally - the studio name appears only in the footer
+              credit now. One line to restore if that went too far. */}
+          <h1 className="font-display text-4xl leading-[1.08] text-sand sm:text-6xl">
+            {HERO.headline}
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <a
+              href="#waitlist"
+              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
+            >
+              {HERO.cta}
+            </a>
+            <span className="text-sm text-taupe">{HERO.ctaNote}</span>
+          </div>
+        </div>
+      </section>
 
       <main className="flex flex-col gap-24 py-20 sm:gap-32 sm:py-28">
         {/* THREE CLAIMS */}
