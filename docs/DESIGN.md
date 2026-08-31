@@ -110,51 +110,71 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 - Reveal once, then disconnect the observer. A page that dismantles itself on
   scroll-up looks broken.
 
-## 9. The fold — Creation of Adam, inverted (2026-08-30)
+## 9. The fold — Creation of Adam, inverted
 
-Nathan's concept, and the first thing to fill the gap the arch left.
+**Status: concept locked, nothing built.** The first attempt was built, shown,
+and deleted (commit 7e83c63). Nathan draws the human hand and will specify how
+it is to be drawn; the code is mine. Nothing gets built until that arrives.
 
-**The composition.** Michelangelo's near-touch, with the roles reversed:
+### The composition
 
-- **Human hand, from the BOTTOM LEFT, straining.** Not Adam's languid wrist —
-  reaching *hard*, tendons out, arm extended past comfort. The effort is the
-  whole point.
-- **AI, from the TOP, coming down — and PULLING BACK.** Withheld, not offered.
-- **The gap between them is the subject.** In the original it is about an inch
-  and closing. Here it is wider and opening.
+- **Human hand — enters BOTTOM LEFT, reaching to TOP LEFT, as hard as it can.**
+  Maximum strain. Nathan owns this drawing.
+- **The machine — descends from above and holds back SLIGHTLY.** Not a chasm.
+  A near-touch, closer to Michelangelo's actual inch than to a refusal.
+- The gap is the subject, and it is small.
 
-**Why the inversion earns its place.** The original is God granting life to a
-passive man. Reversed, it says the thing this product actually believes: the
-capability is there, people are straining for it, and it is not meeting them
-halfway. It is also faintly uncomfortable, which is why it will not read as
-decoration.
+### The machine is a DIFFUSION DENOISE
 
-**How AI gets depicted.** Nathan: *"whatever can describe AI best — not to the
-user, but to someone that knows what AI is capable of."* So the test is
-insider recognition, not consumer legibility. That rules out the whole cliché
-set: robot hands, glowing brains, circuit-board traces, humanoid androids,
-blue neural-network fireworks. Someone who works with models should see it and
-know immediately; someone who does not should still read "the other side".
+Decided 2026-08-30. A hand sharp and certain at the wrist, dissolving into
+structured noise toward the fingertips.
 
-**Hard constraint — this cannot be an AI-generated image.** Roadmap note 12 and
-§3 rule 3 of this file both ban it, and this audience detects and punishes it.
-It also cannot be stock. So it is **built**: vector and/or canvas, in the page,
-from real geometry. Which is on-message anyway — the site is supposed to be the
-proof the tool built it.
+**Why this and not the others.** In a beam-search tree, a segmentation box or a
+withdrawing attention mask, the machine *decides* to hold back — which casts it
+as a villain making a choice. In diffusion it stops short because it **has not
+resolved yet**. The withholding and the medium are the same fact. That is both
+more unsettling and more honest about how these systems actually behave, and it
+is the only option where "holds back slightly" is naturally expressible:
+convergence is a gradient, so the size of the gap is a matter of degree rather
+than a staged pause.
 
-**Open sub-question.** The human hand is the hard half. An anatomically
-convincing hand is not something to hand-author as SVG paths from nothing.
-Options, in preference order:
-1. Derive an outline from the original fresco, which is public domain (1512).
-2. Render the hand as *structure* rather than illustration — contour lines, a
-   wireframe, a field of strain — so it never has to pass as anatomy.
-3. Commission or source a public-domain vector of the Adam hand specifically.
+**Why it reads to an insider.** Anyone who has watched a diffusion preview
+resolve has seen this exact image. It requires no explanation and it is nothing
+like consumer AI art.
 
-**Scope note.** Nathan said "the background of the app" — read here as the
-site's fold, since that is what we are building. Flag if he meant the Electron
-app's own background.
+### Two constraints that killed the first attempt — do not repeat them
+
+1. **SILHOUETTE FIRST.** The first machine was texture with no outline, so there
+   was nothing to recognise before the detail resolved, and at fold scale the
+   detail never resolves. Michelangelo works because both hands are unmistakable
+   SHAPES at thumbnail size, with detail living inside the shape. The denoise
+   must therefore be **hard-edged and fully certain at the wrist**, and only
+   dissolve in the last third. If it reads as noise at 200px wide, it is wrong.
+2. **THE TERMINUS TEST.** "Holds back slightly" means a near-touch, which
+   requires a definable fingertip — one point that can come within an inch.
+   This is what ruled out point clouds, latent-space renders, gradient fields
+   and raw attention texture: none of them has a tip, so none can almost-touch
+   anything.
+
+### Build notes for when the human hand arrives
+
+- Canvas or SVG, in the page, from real geometry. **No generated image, no
+  stock** (roadmap note 12 and §3 rule 3).
+- The noise must be *structured*, not white noise — banded/blocky like a real
+  intermediate denoising step, not television static.
+- The gap must be **computed from the human fingertip**, not typed. The first
+  attempt hard-coded endpoints and two of them ended up past the fingertip,
+  inverting the meaning. Derive it, so moving the hand moves the gap.
+- Certainty gradient runs along the arm axis, not screen-vertically, so it still
+  reads correctly if the composition is re-angled.
 
 ## 7. Log
+
+- **2026-08-30** — Fold attempt built, shown, and DELETED. Failure was
+  silhouette: texture with no outline reads as noise at fold scale.
+- **2026-08-30** — Machine locked as a diffusion denoise. Human hand is
+  Nathan's to draw; he will specify, I build. Direction corrected again:
+  bottom-LEFT reaching to top-left. Holds back *slightly*, not hugely.
 
 - **2026-08-30** — Fold built. Machine = causal attention mask (chosen on the
   insider-recognition test). Hand = Adam's gesture under load, redrawn from
