@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './hero.css';
 
 /**
  * The palette is the APP's palette, lifted from agent-workspace's tokens.css
@@ -24,6 +25,21 @@
 
   --color-coffee: #433428; /* app --separator-opaque */
   --color-cream: #f0cba5; /* app --accent */
+
+  /*
+   * THE NINTH COLOUR, and the one thing the app's palette does not have.
+   *
+   * design-research.md is blunt about it: eight browns and no accent means a
+   * graph cannot show node types, a table cannot show state and a pipeline
+   * cannot show a branch. Every reference site carries a hue that is not its
+   * ground - Linear pink, Obsidian purple, Cursor orange, Warp terracotta.
+   *
+   * Cool, because the palette is uniformly warm and this has to read as LIGHT
+   * rather than as a second brand colour. It is the glow in the reference
+   * image, it lights the doorway, and it is the one colour available to carry
+   * state across all three product surfaces.
+   */
+  --color-glow: #dbe4ff;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces', ui-serif, Georgia, serif;

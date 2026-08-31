@@ -1,0 +1,179 @@
+/**
+ * The fold: a lit arch over a doorway.
+ *
+ * Everything here is CSS. The glow is layered text-shadow, the doorway is a
+ * radial gradient, the arc is per-character rotation set inline from the index.
+ * `vanta-backgrounds` §9 is explicit that a shader is the wrong tool when the
+ * effect is a glow, and the research verified the competitor's own graph hero
+ * is plain inline SVG with no canvas at all.
+ */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  /* The arch sits over the door, the door over the ground. Explicit rows
+     rather than absolute positioning so the composition survives a phone. */
+  grid-template-rows: 1fr auto auto;
+  align-items: end;
+  justify-items: center;
+  overflow: hidden;
+  padding: 6vh 4vw 8vh;
+  background: var(--color-ink);
+  isolation: isolate;
+}
+
+/*
+ * The ground glow: light spilling up from the doorway, behind everything.
+ * Painted on the section rather than the door so it is not clipped by the
+ * door's own overflow, and so it survives the door being scaled during entry.
+ */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    58% 42% at 50% 88%,
+    color-mix(in oklab, var(--color-glow) 26%, transparent) 0%,
+    color-mix(in oklab, var(--color-glow) 7%, transparent) 38%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+/* ── the arch ─────────────────────────────────────────────────────── */
+
+.hero-arch {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /* No wrap: the arc maths assumes one line, and a wrapped arc is a shape
+     nobody designed. It shrinks with the viewport instead. */
+  flex-wrap: nowrap;
+  margin: 0;
+  /* Sized so the word spans the viewport at any width. The 0.5vw floor keeps
+     15 characters legible on a phone rather than optimising for the desktop
+     case and letting mobile collapse. */
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 7.1vw, 11rem);
+  font-weight: 400;
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  color: #fff;
+  white-space: pre;
+  user-select: none;
+}
+
+.hero-char {
+  display: inline-block;
+  /* The transform is set inline per character (rotation + quadratic lift).
+     transform-origin at the bottom centre makes the rotation pivot on the
+     baseline, which is what turns a row of rotated letters into an arch
+     rather than a fan. */
+  transform-origin: 50% 100%;
+  /*
+   * THE BACKLIT LOOK. Three shadows, tightest to widest: a hard white core so
+   * the letterform stays crisp, a mid bloom in the accent, and a wide cool
+   * haze. Layered rather than one big blur because a single large shadow goes
+   * grey and muddy instead of reading as light.
+   */
+  text-shadow:
+    0 0 0.06em rgba(255, 255, 255, 0.9),
+    0 0 0.5em color-mix(in oklab, var(--color-glow) 72%, transparent),
+    0 0 1.6em color-mix(in oklab, var(--color-glow) 40%, transparent),
+    0 0 4rem color-mix(in oklab, var(--color-glow) 22%, transparent);
+}
+
+/* ── the doorway ──────────────────────────────────────────────────── */
+
+.hero-door {
+  position: relative;
+  width: clamp(6.5rem, 13vw, 12rem);
+  aspect-ratio: 3 / 4.6;
+  margin-top: clamp(1.5rem, 4vh, 3.5rem);
+  overflow: hidden;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-ink);
+  /* The opening reads as light because of what leaves it, not because it is
+     a pale rectangle: a hard rim, then bloom escaping into the room. */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--color-glow) 55%, transparent),
+    0 0 2rem color-mix(in oklab, var(--color-glow) 34%, transparent),
+    0 0 7rem color-mix(in oklab, var(--color-glow) 20%, transparent);
+  /* Scales up from the floor on entry, so the light appears to open. */
+  transform-origin: 50% 100%;
+}
+
+.hero-graph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-edge {
+  stroke: color-mix(in oklab, var(--color-glow) 45%, transparent);
+  stroke-width: 0.4;
+}
+
+.hero-node {
+  fill: var(--color-glow);
+  /* A real SVG blur, small radius: this is nine dots, not a full-screen
+     filter, so the repaint cost the gsap skill warns about does not apply. */
+  filter: drop-shadow(0 0 1.2px var(--color-glow));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ── the line under it ────────────────────────────────────────────── */
+
+.hero-sub {
+  max-width: 34ch;
+  margin: clamp(1.5rem, 4vh, 3rem) 0 0;
+  text-align: center;
+  text-wrap: balance;
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  line-height: 1.5;
+  color: var(--color-clay);
+}
+
+/* ── the hidden start state ───────────────────────────────────────── */
+
+/*
+ * GSAP animates FROM here with to(). The gsap skill §5: `from()` applies its
+ * start values at creation time, which paints the finished position for one
+ * frame first. Owning the hidden state in CSS removes that flash entirely.
+ *
+ * Guarded on no-preference so that a reduced-motion visitor — or anyone whose
+ * JS never runs — sees the finished composition rather than an empty screen.
+ * A hero that depends on JS to become visible is a blank page when it fails.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* `.motion` is added to <html> by main.tsx, so these rules exist ONLY once
+     the bundle has actually booted. Without that gate a failed or blocked
+     script leaves the whole fold at opacity 0 and the page is blank - the
+     exact failure this block's own comment warns about. */
+  .motion .hero-char {
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 0.45em;
+  }
+  .motion .hero-door {
+    opacity: 0;
+    visibility: hidden;
+    scale: 1 0.06;
+  }
+  .motion .hero-edge,
+  .motion .hero-node {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .motion .hero-node {
+    scale: 0.2;
+  }
+  .motion .hero-sub {
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 0.6rem;
+  }
+}

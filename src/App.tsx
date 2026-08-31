@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
+import { BRAND, CLAIMS, FOOTER, LINKS, STATUS, WAITLIST } from './content'
+import { Hero } from './components/Hero'
 
 /**
  * The whole page. One file because it is one page — a router and a components/
@@ -161,27 +162,9 @@ export default function App() {
         Skip to the waitlist
       </a>
 
-      <main className="flex flex-col gap-24 py-20 sm:gap-32 sm:py-28">
-        {/* HERO */}
-        <Section>
-          <p className="font-display text-sm tracking-[0.2em] text-taupe uppercase">
-            {BRAND.name}
-          </p>
-          <h1 className="mt-6 font-display text-4xl leading-[1.15] text-sand sm:text-6xl">
-            {HERO.headline}
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <a
-              href="#waitlist"
-              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
-            >
-              {HERO.cta}
-            </a>
-            <span className="text-sm text-taupe">{HERO.ctaNote}</span>
-          </div>
-        </Section>
+      <Hero />
 
+      <main className="flex flex-col gap-24 py-20 sm:gap-32 sm:py-28">
         {/* THREE CLAIMS */}
         <Section>
           <ul className="grid gap-10 sm:grid-cols-3">
