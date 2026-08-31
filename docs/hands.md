@@ -10,72 +10,72 @@ This file is the technical answer. `DESIGN.md` §9 stays the concept.
 
 ---
 
-## 1. Technique — segment rig, driven by GSAP
+## 1. Technique — animate the photograph, never redraw it
 
-Five candidates were considered. One survives.
+**Superseded 2026-08-30.** The first version of this file specified cutting a
+generated hand into ~32 rigged segments. That was built as a placeholder and it
+was bad, because it amounted to drawing a hand from scratch in vector, and a
+hand drawn from scratch reads as a cartoon at any level of care.
 
-| Approach | Verdict |
-|---|---|
-| **Segment ("cutout") rig** — the hand is cut into palm + phalanges, each an `<image>` in a nested `<g>`, rotated at its joint | ✅ **This one.** Photoreal source, full articulation, no new dependency |
-| Frame sequence / sprite | ❌ A continuous irregular tremor cannot be looped frames without reading as a GIF |
-| MorphSVG between poses | ❌ Only morphs outlines. Cannot carry interior shading, and the machine hand needs to look rendered |
-| Rive state machine | ❌ Right *shape* of tool — "idle → feint → retract" is literally a state machine — but **~200 KB gzipped of WASM** against GSAP core at 27 KB, and it needs the Rive editor to author. Two hands do not amortise that |
-| WebGL / three.js | ❌ Overkill, and rule 6 already bans WebGL for decoration |
+Nathan: *"stop trying to draw the hand from scratch... everytime you make it
+from scratch its really bad we need to do a different way."* Correct, and the
+new direction makes almost all of the rigging unnecessary:
 
-**Why the segment rig is the right one:** it is how every professional 2D
-character rig works (Spine, Live2D, After Effects DUIK). It takes a raster image
-— including one that came out of an image model — and makes it articulate. So we
-keep the photoreal, dither-friendly source *and* get real finger motion.
+- **The human is Michelangelo's Adam hand**, fingers reaching further.
+- **The machine is the SAME image, mirrored** — not shaking, *"relaxed and
+  calculated."*
 
-### The rig
+One asset, used twice. The asymmetry stops being two drawings and becomes two
+*behaviours* applied to one picture, which is both far less work and a stronger
+idea: the machine is literally our own reflection, declining to close the gap.
 
-Nested `<g>` per joint, each rotating about its own knuckle:
+### What that needs, technically
 
-```
-g#hand              → wrist rotation, whole-hand drift
-  image (palm)
-  g#index-prox      → svgOrigin at the MCP knuckle
-    image
-    g#index-mid     → svgOrigin at the PIP joint
-      image
-      g#index-dist  → svgOrigin at the DIP joint
-        image
-  ... ×5 fingers
-```
+| Requirement | Technique | Cost |
+|---|---|---|
+| Machine: relaxed drift, no shake | Whole-image `transform` on one `<img>` | **Nothing.** No cutting, no warping |
+| Human: the shake | Whole-image `transform`, two-layer noise | **Nothing.** Already built and tested |
+| Human: fingers reaching further | ONE cut — the index finger only | An hour of masking |
 
-GSAP `svgOrigin: "412 318"` sets the pivot in viewBox coordinates, which is
-exactly what a joint is. `smoothOrigin` prevents the jump when an origin changes
-mid-animation. 16 animatable rotations per hand; GSAP drives all of them from one
-timeline.
+**The shake does not need the image touched at all.** A tremor is a rigid-body
+motion: the whole hand moves, it does not deform. Animating `translate` and
+`rotate` on a single element is GPU-composited and costs nothing per frame.
 
-**Seams:** overlap each segment ~15% into its parent and round the proximal end,
-so rotation never opens a gap. Standard rig practice; costs nothing, but it has
-to be done at cut time, not later.
+**The reach is the only thing that deforms**, and even then only one finger.
+Adam's index finger is the subject of the entire painting, so cutting that one
+finger out, rigging it at two joints, and leaving the rest of the hand as a
+single untouched image gets the whole effect for about 1/16th of the work.
 
----
+### Warping was considered and rejected
 
-## 2. 🔴 What this means for the artwork — read before generating
+Two ways exist to bend part of a photograph without cutting it:
 
-The rig, not the image, creates the pose. That inverts what to generate:
+- **`feDisplacementMap`** — displaces pixels by the colour values of a second
+  image. Good for ripples and warps; it has no notion of a joint, so it cannot
+  extend a finger in a controlled way.
+- **A triangle mesh with pins** (After Effects Puppet, Photoshop Puppet Warp,
+  Live2D). This is the real tool for the job, using As-Rigid-As-Possible
+  deformation. On the web it means a WebGL or canvas mesh renderer.
 
-1. **Generate a NEUTRAL, RELAXED pose. Not the strained one.** A hand already
-   clenched at maximum reach cannot be rigged into anything else — the segments
-   are foreshortened and overlapping. Generate the hand slightly open, fingers
-   separated, palm roughly flat to camera. The strain gets posed in code, which
-   also means it stays tunable without regenerating.
-2. **Fingers must not overlap each other.** Any two fingers touching in the
-   source is a cut that cannot be made cleanly.
-3. **Clean, flat background.** Cutting 16 segments out of a busy background is
-   hours of masking.
-4. **Generous resolution — 2048px on the long edge minimum.** Segments get
-   scaled and rotated independently; a soft source shows it.
-5. **Both hands lit from the same side.** They share a frame. Two different light
-   directions reads as a collage.
+Both are far more machinery than one cut finger requires. Revisit only if the
+whole hand needs to deform.
 
-Same rules for the machine hand, plus: it must be the *perfect* one — the failed
-generations are still derived backwards from it (`DESIGN.md` §9).
+### Licensing
 
----
+The *Creation of Adam* is Michelangelo, c. 1512 — public domain. Faithful
+photographic reproductions of a 2D public-domain work carry no new copyright in
+the US (*Bridgeman v. Corel*). So the source is safe to use and to modify.
+
+## 2. What is needed to build it
+
+1. **The Adam hand image** — cropped to the hand and forearm, background
+   removed or removable, as large as can be found. This is the only blocking
+   asset.
+2. Nothing else. The machine is this image with `scaleX(-1)`.
+
+If the fingers should visibly extend, one extra deliverable: the index finger
+cut onto its own layer, with the gap behind it filled. That can come later —
+the shake and the drift work without it.
 
 ## 3. The human hand — strain is TWO layers, not one
 
@@ -212,18 +212,36 @@ with a static PNG fallback for Firefox. That is an upgrade, not the first build.
 
 ---
 
-## 7. Build order
+## 7. What already exists
 
-1. Cut the machine hand into segments, rig it, get the dangle right. It is the
-   harder motion, and it validates the whole rig approach.
-2. Add the feint, with randomised timing.
-3. Human hand: rig, then the two-layer strain.
-4. Bake the dither into the segments.
-5. The self-improvement load sequence (`DESIGN.md` §9), derived backwards from
-   the finished machine hand.
-6. Only then consider the screen-locked filter for the machine.
+`src/hands/motion.ts` and `tests/hands.test.mjs` survive the change of approach
+intact, because they were written as pure functions of time that output offsets
+and rotations. Nothing in them knows or cares whether the thing being moved is a
+vector path or a photograph — which is the one part of the placeholder detour
+that was worth keeping.
 
-## 8. Sources
+Built and tested (23 assertions, all passing):
+
+- `effort(t)` — the 0.85Hz surge: push, hold, sag, with a non-repeating envelope
+- `tremor(t)` — the 9-11Hz physiological buzz
+- `humanPose(t)` — both layers combined, with per-finger follow-through
+- `sway(t)` / `machinePose(t)` — the relaxed drift and the feint
+- `nextFeint` / `feintAmount` — gesture scheduling, with the withdraw-slower rule
+- `restPose()` — the composed state for reduced motion and any failure
+
+Deleted: the from-scratch vector rig (`rig.ts`, `scene.ts`, `Hands.tsx`,
+`Lab.tsx`). It drew a hand, and drawing the hand is the thing we are not doing.
+
+## 8. Build order
+
+1. Get the Adam hand image.
+2. Human: one `<img>`, whole-image shake driven by `humanPose`.
+3. Machine: the same `<img>` mirrored, drift driven by `machinePose`.
+4. Compose — the gap between the fingertips is the subject.
+5. Bake the 1-bit dither into the two images at build time (section 5).
+6. Only if needed: cut the index finger and rig it for the reach.
+
+## 9. Sources
 
 - Physiological tremor 8–12 Hz, amplitude vs MVC — [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0304394017300447), [J Neurophysiol](https://journals.physiology.org/doi/full/10.1152/jn.00519.2014), [J Appl Physiol](https://journals.physiology.org/doi/full/10.1152/japplphysiol.90851.2008)
 - Fatigue and load dependence of tremor — [PubMed 10656518](https://pubmed.ncbi.nlm.nih.gov/10656518/), [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/016794579190022P)
