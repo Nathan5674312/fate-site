@@ -14,30 +14,45 @@
  * best ratio anywhere is 3.7:1, so it is decoration only.
  */
 @theme {
-  --color-ink: #160c08; /* app --bg-app */
-  --color-bistre: #26160b; /* app --bg-elevated */
-  --color-sunken: #0f0805; /* app --bg-sunken */
+  /*
+   * NOT THE APP'S PALETTE. Nathan, 2026-08-30: "the site shouldn't be the
+   * palette of the app", and of the Hermes reference, "not the same palette"
+   * either. So the eight browns are gone and the reference blue is not adopted.
+   *
+   * `design-research.md` independently reached the same place: eight browns is
+   * a one-hue RAMP, not a palette - six of the eight are hard to tell apart at
+   * small sizes, and with no second hue a graph cannot show node types, a table
+   * cannot show state and a pipeline cannot show a branch.
+   *
+   * INTERIM, and deliberately so - the palette is still open (see docs/DESIGN.md
+   * section 4). This is a neutral high-contrast base: a true near-black ground,
+   * a near-white for display type, four greys that separate by LIGHTNESS alone
+   * the way Raycast's ten do, and one cool accent that reads as light. It is the
+   * ASCENSION reference's own scheme, which is the safest place to sit until the
+   * real palette lands.
+   *
+   * THE NAMES ARE KEPT FROM THE APP ON PURPOSE. Every class in the page already
+   * says text-sand, border-coffee, bg-ink. Re-pointing the VALUES here re-skins
+   * the whole site from one block; renaming them would be a hundred-line diff
+   * that has to happen again the moment Nathan picks the real colours.
+   */
+  --color-ink: #08080a; /* ground. Neutral, not the app's warm Ink */
+  --color-bistre: #131317; /* raised surface */
+  --color-sunken: #050506;
 
-  --color-sand: #d8b493; /* app --label,           10.0:1 AAA */
-  --color-tan: #ba9b7d; /* app --label-secondary,  7.4:1 AAA */
-  --color-clay: #987d65; /* app --label-tertiary,   5.0:1 AA  */
-  --color-taupe: #806854; /* app --label-quaternary, decorative ONLY */
+  --color-sand: #f4f4f5; /* display + primary text, ~18:1 on ground */
+  --color-tan: #c9c9cf; /* secondary */
+  --color-clay: #8a8a92; /* body-legal muted, ~5.6:1 */
+  --color-taupe: #5c5c63; /* metadata only, never body */
 
-  --color-coffee: #433428; /* app --separator-opaque */
-  --color-cream: #f0cba5; /* app --accent */
+  --color-coffee: #26262b; /* borders and hairlines */
+  --color-cream: #f4f4f5; /* button ground */
 
   /*
-   * THE NINTH COLOUR, and the one thing the app's palette does not have.
-   *
-   * design-research.md is blunt about it: eight browns and no accent means a
-   * graph cannot show node types, a table cannot show state and a pipeline
-   * cannot show a branch. Every reference site carries a hue that is not its
-   * ground - Linear pink, Obsidian purple, Cursor orange, Warp terracotta.
-   *
-   * Cool, because the palette is uniformly warm and this has to read as LIGHT
-   * rather than as a second brand colour. It is the glow in the reference
-   * image, it lights the doorway, and it is the one colour available to carry
-   * state across all three product surfaces.
+   * The one hue that is not the ground. Cool, because it has to read as LIGHT
+   * rather than as a second brand colour: it is the glow in the ASCENSION
+   * reference, it lights the doorway, and it is the only colour available to
+   * carry state across the graph, the table and the pipeline.
    */
   --color-glow: #dbe4ff;
 

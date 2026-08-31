@@ -35,14 +35,34 @@ gsap.registerPlugin(useGSAP)
  * reduced-motion branch that is a media condition rather than an `if`.
  */
 
-/** How far the ends of the word lift, in degrees at the outermost character. */
-const ARC_DEGREES = 13
+/**
+  * THE ARCH, as a real circular arc.
+  *
+  * The first version rotated linearly but lifted quadratically, so the letters
+  * were not sitting on any single curve - each one was rotated to an angle its
+  * own position did not justify. That mismatch is what read as "rough": the
+  * eye finds the implied circle and every character misses it slightly.
+  *
+  * Now both come from the same angle. A character at normalised position t
+  * (-1 at the left end, +1 at the right) sits at angle t*ARC_DEGREES on a
+  * circle, so its drop is proportional to (1 - cos angle) - the sagitta - and
+  * is normalised so the outermost character drops exactly ARC_DROP_EM.
+  */
+const ARC_DEGREES = 30
+const ARC_DROP_EM = 1.45
 
 export function Hero() {
   const root = useRef<HTMLElement>(null)
 
   const word = BRAND.studio.toUpperCase()
   const chars = useMemo(() => [...word], [word])
+
+  /** Sagitta of the arc at t, normalised so |t|=1 drops exactly ARC_DROP_EM. */
+  const drop = (t: number) => {
+    const rad = (d: number) => (d * Math.PI) / 180
+    const full = 1 - Math.cos(rad(ARC_DEGREES))
+    return full === 0 ? 0 : ((1 - Math.cos(rad(t * ARC_DEGREES))) / full) * ARC_DROP_EM
+  }
 
   /** Laid out once at module scope cost, memoised so React never re-runs it. */
   const graph = useMemo(() => {
@@ -128,9 +148,8 @@ export function Hero() {
               data-char
               className="hero-char"
               style={{
-                // Rotation is linear across the word; the lift is quadratic, so
-                // the baseline curves instead of tenting.
-                transform: `rotate(${t * ARC_DEGREES}deg) translateY(${t * t * 1.1}em)`,
+                // Same angle drives both, so every glyph lands on one circle.
+                transform: `rotate(${t * ARC_DEGREES}deg) translateY(${drop(t)}em)`,
               }}
             >
               {c === ' ' ? ' ' : c}

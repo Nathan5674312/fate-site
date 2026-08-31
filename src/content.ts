@@ -24,7 +24,8 @@ export const BRAND = {
   /** The project. */
   name: 'Fate',
   /** The umbrella Nathan ships everything under, per his own description. */
-  studio: 'Divine Construct',
+  /* No T. It matches the domain, and it is how Nathan writes it. */
+  studio: 'Divine Construc',
   domain: 'divineconstruc.com',
 } as const
 
