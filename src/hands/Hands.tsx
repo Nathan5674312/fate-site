@@ -1,5 +1,5 @@
 /**
- * THE TWO HANDS — two photographs, moved. Nothing is drawn.
+ * THE TWO HANDS — two photographs, moved and dithered. Nothing is drawn.
  *
  * Both crops come from Michelangelo's Creation of Adam (public domain), and the
  * casting is Nathan's, 2026-08-30: GOD'S hand is the human, ADAM'S hand is the
@@ -11,23 +11,25 @@
  *   Adam's hand is limp. The wrist droops, the fingers hang unsupported, the
  *   whole thing is unbothered. It is the withholding, already painted.
  *
- * So the human now occupies the creator's pose while the machine takes the
- * posture of the one being created and cannot be troubled to reach back. The
- * gestures were in the fresco the whole time; only the labels swap.
+ * So the human occupies the creator's pose while the machine takes the posture
+ * of the one being created and cannot be troubled to reach back. Both gestures
+ * were already in the fresco; only the labels swap.
  *
- * 🔴 NOTHING HERE DEFORMS THE IMAGE. A tremor is rigid-body motion — the hand
- * moves, it does not bend — so both hands are single <img> elements with a
- * transform on a wrapper. That is GPU-composited and costs nothing per frame.
- * The one thing that would need the image cut is the fingers extending further,
- * and that is deliberately not done yet: see docs/hands.md section 1.
+ * HOW THE FINGERS REACH FURTHER, without the image ever being cut: a second
+ * pose is dissolved in per pixel under the dither (see dither.ts), driven by
+ * the same effort curve that drives the shake. Until that art exists, the
+ * POSE_B constants are undefined and each hand simply holds its one pose.
  */
 
 import { useEffect, useRef } from 'react'
+import { Hand } from './Hand'
+import type { DitherOptions } from './dither'
 import {
   type Feint,
   type Gain,
   type Pose,
   FULL,
+  effort,
   feintEnd,
   humanPose,
   machinePose,
@@ -42,7 +44,30 @@ export type HandsOptions = {
   gain: Gain
   reduced: boolean
   feintNonce: number
+  ditherOn: boolean
+  look: DitherOptions
+  pixelScale: number
 }
+
+/*
+ * Tuned against the Hermes reference Nathan supplied: one saturated ink, blown
+ * highlights, crushed shadows, detail deliberately destroyed. High contrast is
+ * what does most of that - the fresco is very flat by comparison.
+ */
+export const DEFAULT_LOOK: DitherOptions = {
+  threshold: 0.5,
+  contrast: 1.9,
+  gamma: 1,
+  pivot: 0.62,
+  ink: [92, 84, 255],
+}
+
+/** Ink presets. The ground is the page behind, never painted by the dither. */
+export const INKS = {
+  'Hermes blue': [92, 84, 255],
+  Bone: [244, 244, 245],
+  Glow: [219, 228, 255],
+} as const
 
 export const DEFAULT_OPTIONS: HandsOptions = {
   playing: true,
@@ -50,12 +75,19 @@ export const DEFAULT_OPTIONS: HandsOptions = {
   gain: FULL,
   reduced: false,
   feintNonce: 0,
+  ditherOn: true,
+  look: DEFAULT_LOOK,
+  pixelScale: 0.55,
 }
 
+/* The second, further-reaching poses. Undefined until that art exists. */
+const HUMAN_POSE_B: string | undefined = undefined
+const MACHINE_POSE_B: string | undefined = undefined
+
 /**
- * Pose units are hand-local, sized for a rig rather than for a photograph, so
- * they are scaled here rather than in motion.ts — the motion model stays the
- * one described in docs/hands.md and this is purely how loud it is on screen.
+ * Pose units are hand-local, sized for a rig rather than a photograph, so the
+ * scaling lives here. motion.ts stays the model described in docs/hands.md and
+ * this is purely how loud it is on screen.
  */
 const HUMAN_TRAVEL = 3.2
 const MACHINE_TRAVEL = 2.4
@@ -66,10 +98,13 @@ function transformOf(pose: Pose, travel: number): string {
 }
 
 export function Hands({ options }: { options: HandsOptions }) {
-  const human = useRef<HTMLDivElement>(null)
-  const machine = useRef<HTMLDivElement>(null)
   const opts = useRef(options)
   opts.current = options
+
+  // Written by ONE loop and read by both hands. Two rAF loops is how the two
+  // hands drift out of sync with each other.
+  const humanMotion = useRef({ transform: 'none', blend: 0 })
+  const machineMotion = useRef({ transform: 'none', blend: 0 })
 
   useEffect(() => {
     let clock = 0
@@ -89,15 +124,15 @@ export function Hands({ options }: { options: HandsOptions }) {
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       // Clamped: a backgrounded tab banks a huge delta, and without this the
-      // hands lurch through a minute of motion in a single frame on return.
+      // hands lurch through a minute of motion in one frame on return.
       const delta = Math.min(now - last, 100)
       last = now
       const o = opts.current
 
       if (systemReduced || o.reduced) {
         const rest = transformOf(restPose(), 0)
-        if (human.current) human.current.style.transform = rest
-        if (machine.current) machine.current.style.transform = rest
+        humanMotion.current = { transform: rest, blend: 0 }
+        machineMotion.current = { transform: rest, blend: 0 }
         return
       }
 
@@ -110,14 +145,16 @@ export function Hands({ options }: { options: HandsOptions }) {
         feint = nextFeint(rand, clock)
       }
 
-      if (human.current) {
-        human.current.style.transform = transformOf(
-          humanPose(clock, -38, undefined, o.gain),
-          HUMAN_TRAVEL,
-        )
+      humanMotion.current = {
+        transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL),
+        // The same surge that shakes the hand pushes the fingers out, so the
+        // reach and the strain are one gesture rather than two loops that
+        // slowly fall out of phase with each other.
+        blend: effort(clock) * o.gain.effort,
       }
-      if (machine.current) {
-        machine.current.style.transform = transformOf(machinePose(clock, feint), MACHINE_TRAVEL)
+      machineMotion.current = {
+        transform: transformOf(machinePose(clock, feint), MACHINE_TRAVEL),
+        blend: 0,
       }
     }
 
@@ -131,31 +168,49 @@ export function Hands({ options }: { options: HandsOptions }) {
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/*
-        * Each hand is two nested elements on purpose. The OUTER one carries the
-        * static placement — where in the frame, which way round, how big — and
-        * the INNER one is the only thing the animation touches. Composing a
-        * mirror and a rotation in one matrix is how sign errors get in.
+        * THE STAGE: a fixed 16:10 box, centred, sized to COVER the frame.
+        *
+        * Both hands are placed as percentages of THIS, not of the viewport.
+        * Percentages of the viewport cannot hold a composition - measured at
+        * 1440x900 the fingertips sat 231px apart, and the same CSS at 740x961
+        * put them 556px apart and stacked vertically. The gap is the subject of
+        * the picture, so it cannot be a function of the window shape.
+        *
+        * min-w-[160vh] guarantees the box is at least 1.6x the viewport height,
+        * so at 16:10 its height always covers; w-full covers the width. The
+        * frame then crops in from the edges, exactly like object-fit: cover.
         */}
-      <div className="absolute bottom-[8%] left-[4%] w-[46%] max-w-[560px] [transform:scaleX(-1)_rotate(-8deg)]">
-        <div ref={human} className="will-change-transform">
-          <img
-            src="/art/human-god-hand.png"
-            alt=""
-            className="w-full mix-blend-screen opacity-90"
-            draggable={false}
-          />
-        </div>
-      </div>
-
-      <div className="absolute top-[10%] right-[6%] w-[32%] max-w-[380px] [transform:scaleX(-1)_rotate(6deg)]">
-        <div ref={machine} className="will-change-transform">
-          <img
-            src="/art/ai-adam-hand.png"
-            alt=""
-            className="w-full mix-blend-screen opacity-90"
-            draggable={false}
-          />
-        </div>
+      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[160vh] -translate-x-1/2 -translate-y-1/2">
+      {/*
+        * Each hand is two nested elements. The OUTER carries static placement —
+        * where, which way round, how big — and the INNER is the only thing the
+        * animation touches. Composing a mirror and a rotation into one matrix
+        * is how sign errors get in.
+        *
+        * Placement pulls the fingertips together. Measured at 1440x900 they were
+        * 501px apart, which reads as two objects in opposite corners rather than
+        * a near-touch. The gap IS the subject, so it is kept tight.
+        */}
+      <Hand
+        src="/art/human-god-hand.png"
+        srcB={HUMAN_POSE_B}
+        className="absolute bottom-[26%] left-[3%] w-[46%]"
+        baseTransform="scaleX(-1) rotate(-18deg)"
+        look={options.look}
+        pixelScale={options.pixelScale}
+        motion={humanMotion}
+        ditherOn={options.ditherOn}
+      />
+      <Hand
+        src="/art/ai-adam-hand.png"
+        srcB={MACHINE_POSE_B}
+        className="absolute top-[16%] left-[53%] w-[30%]"
+        baseTransform="scaleX(-1) rotate(14deg)"
+        look={options.look}
+        pixelScale={options.pixelScale}
+        motion={machineMotion}
+        ditherOn={options.ditherOn}
+      />
       </div>
     </div>
   )
