@@ -9,6 +9,36 @@
       content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key. Join the waitlist."
     />
     <meta name="color-scheme" content="dark" />
+
+    <!-- A waitlist link exists to be pasted somewhere. Without these it previews
+         as a bare URL, which is the one context where this page gets judged
+         before it is ever opened. Canonical is absolute because the same build
+         answers on both the apex and the pages.dev preview. -->
+    <link rel="canonical" href="https://divineconstruc.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Divine Construct" />
+    <meta property="og:url" content="https://divineconstruc.com/" />
+    <meta property="og:title" content="Fate — a workspace your coding agent already knows how to use" />
+    <meta
+      property="og:description"
+      content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key."
+    />
+    <!-- og:image is deliberately absent until there is a real screenshot to put
+         in it. A card with a missing image renders as text; a card pointing at a
+         404 renders as broken. -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Fate — a workspace your coding agent already knows how to use" />
+    <meta
+      name="twitter:description"
+      content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key."
+    />
+
+    <!-- Inline SVG favicon: no binary asset, no extra request, and it inherits
+         the app's own Ink and Cream rather than shipping a second palette. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23160c08'/%3E%3Cpath d='M11 24V8h11v3.4h-7.2v3.3H21v3.4h-6.2V24z' fill='%23f0cba5'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
