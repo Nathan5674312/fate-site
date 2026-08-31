@@ -156,6 +156,41 @@ like consumer AI art.
    and raw attention texture: none of them has a tip, so none can almost-touch
    anything.
 
+### Rendering: 1-bit dither over a generated source (2026-08-30)
+
+**This is a deliberate exception to §3 rule 3 (no AI-generated hero art).**
+Nathan's call, and the reasoning is sound rather than a fudge.
+
+**Why the exception holds.** The reason this audience detects generated imagery
+is the RENDERING — plastic lighting, smooth uncanny surfaces, airbrushed sheen.
+A hard 1-bit dither discards all of it and keeps only shape and structure, which
+is why the reference images read as screen-print rather than as AI. The tell is
+destroyed by the process.
+
+**Why it is not fully defused.** Dither preserves SILHOUETTE, and hands are the
+single worst subject generative models draw. Merged fingers, wrong knuckle
+counts, thumbs on the wrong side — all survive dithering intact, and this image
+is entirely hands. So anatomy is checked BEFORE the effect, never after.
+
+**Process.** Nathan generates; the raw output comes to me undithered; the dither
+is applied in code (Atkinson — the open, crisp pattern in his references), so
+threshold, dot scale and tint stay adjustable. Baking the effect in an editor
+would mean regenerating the source for every tweak.
+
+**Source requirements**, because dither lives on local contrast:
+one hard light source with deep shadows; empty background; both hands large in
+frame and near-touching; photographic or engraved rather than flat-colour
+illustration; high resolution, since dithering downscales badly.
+
+**Checks on arrival:** five fingers per hand, plausible joints, and whether the
+machine hand still reads as a MACHINE once dithered. If it comes back as merely
+a second human hand, the diffusion-denoise treatment returns in some form.
+
+**Note on colour:** all three references are blue duotone, not mono. Nathan said
+"black and white effect", so the base is 1-bit mono and any tint is applied
+after — one variable, changeable at any time, so the open palette question in §4
+is not accidentally decided by a reference image.
+
 ### Build notes for when the human hand arrives
 
 - Canvas or SVG, in the page, from real geometry. **No generated image, no
@@ -169,6 +204,10 @@ like consumer AI art.
   reads correctly if the composition is re-angled.
 
 ## 7. Log
+
+- **2026-08-30** — Rendering decided: generate the source, then 1-bit dither
+  it in code. Logged as a deliberate exception to the no-AI-art rule, with
+  the anatomy check that the exception depends on. See §9.
 
 - **2026-08-30** — Fold attempt built, shown, and DELETED. Failure was
   silhouette: texture with no outline reads as noise at fold scale.
