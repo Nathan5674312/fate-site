@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { dither, toImageData } from './dither'
+import { buildWeights, displace, makeField, type Field, type Pin } from './warp'
 import type { MotionFrame } from './Hands'
 
 export type HandProps = {
@@ -29,6 +30,8 @@ export type HandProps = {
    * also the performance control, quadratically.
    */
   pixelScale: number
+  /** Deformation pins for this hand, in image space. */
+  pins: readonly Pin[]
   /**
    * Live values, read every frame without re-rendering React. The LOOK arrives
    * here too, already modulated by the animation, so the treatment and the
@@ -38,11 +41,14 @@ export type HandProps = {
   ditherOn: boolean
 }
 
-export function Hand({ src, srcB, className, baseTransform, pixelScale, motion, ditherOn }: HandProps) {
+export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, motion, ditherOn }: HandProps) {
   const move = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const frames = useRef<{ a: ImageData; b: ImageData | null; out: ImageData } | null>(null)
+  // Built once per image: rest positions never move, and this is the costly
+  // part (a distance per pixel per pin).
+  const warp = useRef<{ weights: Float32Array; field: Field } | null>(null)
   const onRef = useRef(ditherOn)
   onRef.current = ditherOn
 
@@ -65,10 +71,14 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, motion, 
         b: b ? toImageData(b, pixelScale) : null,
         out: new ImageData(ia.width, ia.height),
       }
+      warp.current = {
+        weights: buildWeights(pins, ia.width, ia.height),
+        field: makeField(ia.width, ia.height),
+      }
       setSize({ w: ia.width, h: ia.height })
     })
     return () => { dead = true }
-  }, [src, srcB, pixelScale])
+  }, [src, srcB, pixelScale, pins])
 
   useEffect(() => {
     if (!size) return
@@ -95,7 +105,11 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, motion, 
       const L = m.look
       const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}`
       const blend = f.b ? m.blend : 0
+      // With a warp running the geometry changes every frame, so the skip only
+      // applies when nothing is deforming.
+      const warping = m.offsets.some((v: { x: number; y: number }) => v.x !== 0 || v.y !== 0)
       if (
+        !warping &&
         Math.abs(blend - lastBlend) < 0.008 &&
         lookKey === lastLook &&
         lastOn === onRef.current
@@ -111,13 +125,18 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, motion, 
         ctx.putImageData(blend > 0.5 && f.b ? f.b : f.a, 0, 0)
         return
       }
-      dither(f.a, f.b, f.out, size.w, { ...L, blend })
+      let field: Field | null = null
+      if (warp.current && m.offsets.length === pins.length) {
+        displace(warp.current.weights, m.offsets, size.w, size.h, warp.current.field)
+        field = warp.current.field
+      }
+      dither(f.a, f.b, f.out, size.w, { ...L, blend }, field)
       ctx.putImageData(f.out, 0, 0)
     }
 
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [size, motion])
+  }, [size, motion, pins])
 
   return (
     <div className={className} style={{ transform: baseTransform }}>

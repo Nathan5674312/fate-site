@@ -24,6 +24,7 @@
 import { useEffect, useRef } from 'react'
 import { Hand } from './Hand'
 import { modulate, type DitherOptions, type LookMod } from './dither'
+import { HUMAN_PINS, MACHINE_PINS, type Pin } from './warp'
 import {
   type Feint,
   type Gain,
@@ -158,11 +159,67 @@ const MACHINE_POSE_B: string | undefined = undefined
  * scaling lives here. motion.ts stays the model described in docs/hands.md and
  * this is purely how loud it is on screen.
  */
-const HUMAN_TRAVEL = 3.2
-const MACHINE_TRAVEL = 2.4
+/*
+ * Cut hard once the per-finger warp landed. Nathan: "the whole image just
+ * moving back and forth... it doesn't look like it's tremoring at all." He was
+ * right, and the fix is not to tune this number - it is that a rigid transform
+ * CANNOT read as tremor at any amplitude, because every pixel moves together.
+ * The warp carries the shake now, so this is reduced to a whole-body drift that
+ * keeps the hand from feeling pinned to the page. Raising it brings the sliding
+ * back.
+ */
+const HUMAN_TRAVEL = 1.1
+const MACHINE_TRAVEL = 1.4
 
 /** What the animation loop hands to each hand, every frame. */
-export type MotionFrame = { transform: string; blend: number; look: DitherOptions }
+export type MotionFrame = {
+  transform: string
+  blend: number
+  look: DitherOptions
+  /** Pixel displacement per pin, image space, same order as the hand's pins. */
+  offsets: { x: number; y: number }[]
+}
+
+const DEG = Math.PI / 180
+
+/**
+ * This frame's displacement for every pin on one hand.
+ *
+ * 🔴 The lag is the whole trick. Each pin samples the drive at `t - pin.lag`,
+ * so the fingertips arrive after the knuckles and no two parts are ever at the
+ * same point in the surge. Give every pin lag 0 and this collapses back into
+ * exactly what Nathan objected to: a rigid image sliding around.
+ *
+ * The tremor gets a per-pin phase for the same reason. A shared phase is a
+ * vibration; independent phases are a tremble.
+ */
+function pinOffsets(
+  pins: readonly Pin[],
+  t: number,
+  reach: number,
+  shake: number,
+  gain: Gain,
+): { x: number; y: number }[] {
+  return pins.map((pin, i) => {
+    if (pin.weight === 0) return { x: 0, y: 0 }
+    const e = effort(t - pin.lag) * gain.effort
+    const tr = tremor(t - pin.lag, i * 1.7) * gain.tremor
+    const travel = pin.weight * (reach * e + shake * pin.shake * tr)
+    const a = pin.dir * DEG
+    return { x: Math.cos(a) * travel, y: Math.sin(a) * travel }
+  })
+}
+
+/**
+ * How far pins travel, in SOURCE pixels. Small on purpose: the fingertip on the
+ * human moves about 9px of a 460px-wide crop, which is a couple of percent. Any
+ * more and the photograph visibly rubberises, and a stretched fresco reads as a
+ * bug rather than as strain.
+ */
+const HUMAN_REACH = 9
+const HUMAN_SHAKE = 3.4
+const MACHINE_REACH = 5
+const MACHINE_SHAKE = 0.9
 
 function transformOf(pose: Pose, travel: number): string {
   const { dx, dy, rot } = pose.wrist
@@ -175,8 +232,13 @@ export function Hands({ options }: { options: HandsOptions }) {
 
   // Written by ONE loop and read by both hands. Two rAF loops is how the two
   // hands drift out of sync with each other.
-  const humanMotion = useRef<MotionFrame>({ transform: 'none', blend: 0, look: HUMAN_LOOK.look })
-  const machineMotion = useRef<MotionFrame>({ transform: 'none', blend: 0, look: MACHINE_LOOK.look })
+  const zero = (pins: readonly Pin[]) => pins.map(() => ({ x: 0, y: 0 }))
+  const humanMotion = useRef<MotionFrame>({
+    transform: 'none', blend: 0, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
+  })
+  const machineMotion = useRef<MotionFrame>({
+    transform: 'none', blend: 0, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
+  })
 
   useEffect(() => {
     let clock = 0
@@ -209,11 +271,13 @@ export function Hands({ options }: { options: HandsOptions }) {
           transform: rest,
           blend: 0,
           look: modulate(o.human.look, o.human.mod, still),
+          offsets: HUMAN_PINS.map(() => ({ x: 0, y: 0 })),
         }
         machineMotion.current = {
           transform: rest,
           blend: 0,
           look: modulate(o.machine.look, o.machine.mod, still),
+          offsets: MACHINE_PINS.map(() => ({ x: 0, y: 0 })),
         }
         return
       }
@@ -236,6 +300,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL),
         blend: e,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
+        offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain),
       }
 
       const reaching = feintAmount(feint, clock)
@@ -246,6 +311,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           primary: reaching,
           jitter: sway(clock),
         }),
+        offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
     }
 
@@ -288,6 +354,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         className="absolute bottom-[26%] left-[3%] w-[46%]"
         baseTransform="scaleX(-1) rotate(-18deg)"
         pixelScale={options.human.pixelScale}
+        pins={HUMAN_PINS}
         motion={humanMotion}
         ditherOn={options.ditherOn}
       />
@@ -297,6 +364,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         className="absolute top-[16%] left-[53%] w-[30%]"
         baseTransform="scaleX(-1) rotate(14deg)"
         pixelScale={options.machine.pixelScale}
+        pins={MACHINE_PINS}
         motion={machineMotion}
         ditherOn={options.ditherOn}
       />

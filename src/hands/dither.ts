@@ -100,6 +100,12 @@ export function dither(
   out: ImageData,
   width: number,
   options: DitherOptions = {},
+  /**
+   * Optional per-pixel displacement, from warp.ts. Folded into the SOURCE READ
+   * rather than run as a second pass: the loop below already visits every
+   * pixel, so a warp costs one offset lookup instead of another full traversal.
+   */
+  warp?: { dx: Float32Array; dy: Float32Array } | null,
 ): void {
   const o = { ...DEFAULTS, ...options }
   const src = a.data
@@ -107,10 +113,12 @@ export function dither(
   const dst = out.data
   const [ir, ig, ib] = o.ink
   const n = dst.length
+  const height = (n >> 2) / width
 
   for (let i = 0; i < n; i += 4) {
-    const px = (i >> 2) % width
-    const py = (i >> 2) / width | 0
+    const p = i >> 2
+    const px = p % width
+    const py = (p / width) | 0
     // One threshold value serves twice: it picks WHICH image this pixel comes
     // from, and then whether that pixel is ink. Reusing it is what keeps the
     // dissolve and the dither visually coherent instead of two competing noises.
@@ -118,12 +126,30 @@ export function dither(
 
     const s = alt && o.blend > t ? alt : src
 
-    if (s[i + 3] < o.alphaCutoff) {
+    /*
+     * Read from where this pixel came FROM, not where it goes to. Inverse
+     * mapping is what keeps the output gapless - pushing pixels forward leaves
+     * holes wherever the field stretches, and no amount of dithering hides a
+     * hole. Nearest-neighbour on purpose: the output is one bit, so the cost of
+     * bilinear sampling would buy nothing.
+     */
+    let si = i
+    if (warp) {
+      const sx = (px - warp.dx[p] + 0.5) | 0
+      const sy = (py - warp.dy[p] + 0.5) | 0
+      if (sx < 0 || sy < 0 || sx >= width || sy >= height) {
+        dst[i + 3] = 0
+        continue
+      }
+      si = (sy * width + sx) << 2
+    }
+
+    if (s[si + 3] < o.alphaCutoff) {
       dst[i + 3] = 0
       continue
     }
 
-    let v = luma(s, i)
+    let v = luma(s, si)
     if (o.gamma !== 1) v = Math.pow(v, o.gamma)
     v = (v - o.pivot) * o.contrast + 0.5
 

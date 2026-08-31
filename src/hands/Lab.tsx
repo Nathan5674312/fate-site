@@ -55,6 +55,17 @@ export default function Lab() {
   const [target, setTarget] = useState<Target>('human')
   const [ground, setGround] = useState(GROUNDS[0].v)
   const [copied, setCopied] = useState(false)
+  // The panel wraps to several rows on a narrow window and then covers the very
+  // thing it is for. Press H, or the button, to judge the art unobstructed.
+  const [ui, setUi] = useState(true)
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'h' || e.key === 'H') setUi((v) => !v)
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [])
 
   // Only the LOOKS persist. Playing, speed and the layer solos are session
   // state — restoring a paused, tremor-off hand on reload would read as a bug.
@@ -129,7 +140,16 @@ export default function Lab() {
     <div className="relative h-svh w-full overflow-hidden" style={{ background: ground }}>
       <Hands options={o} />
 
-      <div className="absolute right-3 bottom-3 left-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-white/20 bg-black/70 px-2.5 py-2 backdrop-blur">
+      <button
+        onClick={() => setUi((v) => !v)}
+        className={`absolute bottom-3 left-3 z-10 ${chip(false)}`}
+      >
+        {ui ? 'Hide UI (H)' : 'Show UI (H)'}
+      </button>
+
+      <div
+        className={`absolute right-3 bottom-12 left-3 flex-wrap items-center gap-1.5 rounded-lg border border-white/20 bg-black/70 px-2.5 py-2 backdrop-blur ${ui ? 'flex' : 'hidden'}`}
+      >
         <button onClick={() => set({ playing: !o.playing })} className={chip(false)}>
           {o.playing ? 'Pause' : 'Play'}
         </button>
@@ -206,7 +226,7 @@ export default function Lab() {
         ))}
       </div>
 
-      <div className="absolute top-3 right-3 flex max-w-[22rem] flex-col items-end gap-1">
+      <div className={`absolute top-3 right-3 max-w-[22rem] flex-col items-end gap-1 ${ui ? 'flex' : 'hidden'}`}>
         <button
           onClick={() => {
             navigator.clipboard?.writeText(readout).then(
@@ -228,7 +248,7 @@ export default function Lab() {
         </code>
       </div>
 
-      <p className="absolute top-3 left-3 max-w-[20rem] text-[11px] leading-relaxed text-white/45 mix-blend-difference">
+      <p className={`absolute top-3 left-3 max-w-[20rem] text-[11px] leading-relaxed text-white/45 mix-blend-difference ${ui ? '' : 'hidden'}`}>
         God&apos;s hand = human, straining. Adam&apos;s hand = machine,
         withholding. Two photographs, moved and dithered — nothing redrawn. The
         second further-reaching pose is not made yet, so the fingers do not
