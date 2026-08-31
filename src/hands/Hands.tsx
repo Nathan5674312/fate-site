@@ -23,13 +23,16 @@
 
 import { useEffect, useRef } from 'react'
 import { Hand } from './Hand'
-import type { DitherOptions } from './dither'
+import { modulate, type DitherOptions, type LookMod } from './dither'
 import {
   type Feint,
   type Gain,
   type Pose,
   FULL,
   effort,
+  feintAmount,
+  sway,
+  tremor,
   feintEnd,
   humanPose,
   machinePose,
@@ -51,6 +54,8 @@ export type HandLook = {
   look: DitherOptions
   /** Dot size, as a fraction of native resolution. */
   pixelScale: number
+  /** How the treatment moves with the animation. See dither.ts. */
+  mod: LookMod
 }
 
 export type HandsOptions = {
@@ -81,22 +86,49 @@ export const HUMAN_LOOK: HandLook = {
     ink: [244, 244, 245],
   },
   pixelScale: 0.8,
+  /*
+   * Densifies hard at the peak of a surge and thins on the sag, so the hand
+   * looks like it is tensing rather than sliding. The jitter term is the boil:
+   * a sub-perceptual threshold wobble that keeps individual dots flickering,
+   * without which a dithered still slid around the screen reads as a decal.
+   */
+  mod: {
+    pivotByDrive: -0.045,
+    contrastByDrive: 0.5,
+    pivotByJitter: 0.006,
+    thresholdByDrive: -0.03,
+  },
 }
 
 /*
- * THE MACHINE. Still on the first pass - saturated blue, softer contrast,
- * coarser dots. Left deliberately different from the human until Nathan tunes
- * it, since a colour split between the two hands may itself be the design.
+ * THE MACHINE. Also dialled in by Nathan, 2026-08-30, and it answers the open
+ * question: no colour split. Both hands are bone. They read as one picture in
+ * one material rather than as two objects tinted to tell them apart - the
+ * difference between them is BEHAVIOUR, which is the stronger way to carry it.
+ *
+ * Denser than the human (threshold 0.15 against 0.24) and pivoted lower, which
+ * suits the crop: Adam's hand is the darker, more shadowed of the two.
  */
 export const MACHINE_LOOK: HandLook = {
   look: {
-    threshold: 0.5,
-    contrast: 1.9,
+    threshold: 0.15,
+    contrast: 3.46,
     gamma: 1,
-    pivot: 0.62,
-    ink: [92, 84, 255],
+    pivot: 0.49,
+    ink: [244, 244, 245],
   },
-  pixelScale: 0.55,
+  pixelScale: 0.8,
+  /*
+   * Far quieter, and driven by the FEINT rather than by effort. It solidifies
+   * slightly as it considers reaching and thins again as it withdraws, so the
+   * moment of near-contact is also the moment it is most present. Barely any
+   * boil: this hand is composed, and a shimmer would make it look nervous.
+   */
+  mod: {
+    pivotByDrive: -0.03,
+    contrastByDrive: 0.25,
+    pivotByJitter: 0.002,
+  },
 }
 
 /** Ink presets. The ground is the page behind, never painted by the dither. */
@@ -129,6 +161,9 @@ const MACHINE_POSE_B: string | undefined = undefined
 const HUMAN_TRAVEL = 3.2
 const MACHINE_TRAVEL = 2.4
 
+/** What the animation loop hands to each hand, every frame. */
+export type MotionFrame = { transform: string; blend: number; look: DitherOptions }
+
 function transformOf(pose: Pose, travel: number): string {
   const { dx, dy, rot } = pose.wrist
   return `translate(${(dx * travel).toFixed(2)}px, ${(dy * travel).toFixed(2)}px) rotate(${(rot + pose.elbow).toFixed(2)}deg)`
@@ -140,8 +175,8 @@ export function Hands({ options }: { options: HandsOptions }) {
 
   // Written by ONE loop and read by both hands. Two rAF loops is how the two
   // hands drift out of sync with each other.
-  const humanMotion = useRef({ transform: 'none', blend: 0 })
-  const machineMotion = useRef({ transform: 'none', blend: 0 })
+  const humanMotion = useRef<MotionFrame>({ transform: 'none', blend: 0, look: HUMAN_LOOK.look })
+  const machineMotion = useRef<MotionFrame>({ transform: 'none', blend: 0, look: MACHINE_LOOK.look })
 
   useEffect(() => {
     let clock = 0
@@ -167,9 +202,19 @@ export function Hands({ options }: { options: HandsOptions }) {
       const o = opts.current
 
       if (systemReduced || o.reduced) {
+        // Held at zero drive: the composed treatment, never a mid-surge one.
         const rest = transformOf(restPose(), 0)
-        humanMotion.current = { transform: rest, blend: 0 }
-        machineMotion.current = { transform: rest, blend: 0 }
+        const still = { primary: 0, jitter: 0 }
+        humanMotion.current = {
+          transform: rest,
+          blend: 0,
+          look: modulate(o.human.look, o.human.mod, still),
+        }
+        machineMotion.current = {
+          transform: rest,
+          blend: 0,
+          look: modulate(o.machine.look, o.machine.mod, still),
+        }
         return
       }
 
@@ -182,16 +227,25 @@ export function Hands({ options }: { options: HandsOptions }) {
         feint = nextFeint(rand, clock)
       }
 
+      // One evaluation of each curve, reused for the pose, the pose blend AND
+      // the treatment - so the ink, the shake and the reach are provably the
+      // same gesture rather than three loops that drift apart over minutes.
+      const e = effort(clock) * o.gain.effort
+      const tr = tremor(clock) * o.gain.tremor
       humanMotion.current = {
         transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL),
-        // The same surge that shakes the hand pushes the fingers out, so the
-        // reach and the strain are one gesture rather than two loops that
-        // slowly fall out of phase with each other.
-        blend: effort(clock) * o.gain.effort,
+        blend: e,
+        look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
       }
+
+      const reaching = feintAmount(feint, clock)
       machineMotion.current = {
         transform: transformOf(machinePose(clock, feint), MACHINE_TRAVEL),
         blend: 0,
+        look: modulate(o.machine.look, o.machine.mod, {
+          primary: reaching,
+          jitter: sway(clock),
+        }),
       }
     }
 
@@ -233,7 +287,6 @@ export function Hands({ options }: { options: HandsOptions }) {
         srcB={HUMAN_POSE_B}
         className="absolute bottom-[26%] left-[3%] w-[46%]"
         baseTransform="scaleX(-1) rotate(-18deg)"
-        look={options.human.look}
         pixelScale={options.human.pixelScale}
         motion={humanMotion}
         ditherOn={options.ditherOn}
@@ -243,7 +296,6 @@ export function Hands({ options }: { options: HandsOptions }) {
         srcB={MACHINE_POSE_B}
         className="absolute top-[16%] left-[53%] w-[30%]"
         baseTransform="scaleX(-1) rotate(14deg)"
-        look={options.machine.look}
         pixelScale={options.machine.pixelScale}
         motion={machineMotion}
         ditherOn={options.ditherOn}

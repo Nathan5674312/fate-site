@@ -157,3 +157,81 @@ export function toImageData(img: HTMLImageElement, scale = 1): ImageData {
   ctx.drawImage(img, 0, 0, c.width, c.height)
   return ctx.getImageData(0, 0, c.width, c.height)
 }
+
+/* ------------------------------------------------ motion-driven look --- */
+
+/**
+ * How the treatment moves WITH the animation.
+ *
+ * Nathan, 2026-08-30: the settings should change as the hand moves. It is a
+ * good instinct and it costs almost nothing, because the motion loop already
+ * computes the drive values — the same effort curve that shakes the hand can
+ * push ink into it.
+ *
+ * What it buys, on the human: at the peak of a surge the hand DENSIFIES —
+ * more ink, harder contrast — so it reads as tensing, becoming more solid and
+ * more present under load. On the sag it thins out and starts to dissolve back
+ * into the ground, which reads as losing the effort. Neither is a metaphor
+ * anyone will name; it just stops the hand looking like a decal.
+ *
+ * The tremor term is the other half. A tiny per-frame wobble in the threshold
+ * makes individual dots flicker on and off — the "boil" of hand-drawn
+ * animation. Without it a dithered still image slid around the screen looks
+ * exactly like what it is: a texture on a moving rectangle.
+ */
+export type LookMod = {
+  /** Ink shift at full drive. NEGATIVE means more ink, since lower = denser. */
+  thresholdByDrive?: number
+  /** Contrast added at full drive. */
+  contrastByDrive?: number
+  /** Per-frame threshold wobble from the jitter signal. */
+  thresholdByJitter?: number
+  /**
+   * 🔴 PIVOT SHIFT AT FULL DRIVE, and at high contrast this is the ONLY one of
+   * these that does anything visible.
+   *
+   * Measured: with Nathan's tuning (contrast 3.45) a threshold swing of 0.09
+   * moved ink coverage by 0.33 of a percentage point - completely invisible.
+   * High contrast stretches the tonal range so far that almost every pixel is
+   * decisively above or below every threshold, leaving nothing borderline for a
+   * threshold shift to flip.
+   *
+   * Pivot moves the WINDOW rather than the cut, so it keeps working: at
+   * contrast 3.45 a pivot shift of 0.03 moves the mapped value by over 0.10.
+   * NEGATIVE means more ink.
+   */
+  pivotByDrive?: number
+  /** Per-frame pivot wobble. This is the boil, for the same reason as above. */
+  pivotByJitter?: number
+}
+
+export const NO_MOD: LookMod = {}
+
+export type Drive = {
+  /** 0..1. Effort for the human; how far a feint has extended for the machine. */
+  primary: number
+  /** Roughly -1..1. Tremor for the human; sway for the machine. */
+  jitter: number
+}
+
+/** The base treatment with the drive applied. Cheap: three multiplies. */
+export function modulate(base: DitherOptions, mod: LookMod, drive: Drive): DitherOptions {
+  const threshold =
+    (base.threshold ?? DEFAULTS.threshold) +
+    (mod.thresholdByDrive ?? 0) * drive.primary +
+    (mod.thresholdByJitter ?? 0) * drive.jitter
+  const contrast =
+    (base.contrast ?? DEFAULTS.contrast) + (mod.contrastByDrive ?? 0) * drive.primary
+  const pivot =
+    (base.pivot ?? DEFAULTS.pivot) +
+    (mod.pivotByDrive ?? 0) * drive.primary +
+    (mod.pivotByJitter ?? 0) * drive.jitter
+  return {
+    ...base,
+    pivot: Math.min(0.98, Math.max(0.02, pivot)),
+    // Clamped: a threshold outside this range floods or empties the hand
+    // entirely, and a surge should never be able to erase it.
+    threshold: Math.min(0.95, Math.max(0.05, threshold)),
+    contrast: Math.max(0.1, contrast),
+  }
+}

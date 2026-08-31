@@ -70,6 +70,8 @@ export default function Lab() {
   const set = (p: Partial<HandsOptions>) => setO((prev) => ({ ...prev, ...p }))
   const setHand = (p: Partial<HandLook>) =>
     setO((prev) => ({ ...prev, [target]: { ...prev[target], ...p } }))
+  const setMod = (p: Partial<HandLook['mod']>) =>
+    setO((prev) => ({ ...prev, [target]: { ...prev[target], mod: { ...prev[target].mod, ...p } } }))
   const setLook = (p: Partial<HandLook['look']>) =>
     setO((prev) => ({ ...prev, [target]: { ...prev[target], look: { ...prev[target].look, ...p } } }))
 
@@ -81,7 +83,7 @@ export default function Lab() {
     }`
 
   const inkOf = (current.look.ink ?? [244, 244, 245]).join(',')
-  const readout = `${target}: ${JSON.stringify(current.look)} pixelScale=${current.pixelScale}`
+  const readout = `${target}: ${JSON.stringify(current.look)} pixelScale=${current.pixelScale} mod=${JSON.stringify(current.mod)}`
 
   const num = (
     label: string,
@@ -104,6 +106,22 @@ export default function Lab() {
       <span className="w-8 tabular-nums text-white">
         {(current.look[key] ?? fallback).toFixed(2)}
       </span>
+    </label>
+  )
+
+  const mod = (label: string, key: 'pivotByDrive' | 'pivotByJitter', min: number, max: number) => (
+    <label className="flex items-center gap-1.5 text-[11px] text-white/70">
+      {label}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={0.001}
+        value={current.mod[key] ?? 0}
+        onChange={(e) => setMod({ [key]: Number(e.target.value) })}
+        className="w-20 accent-white"
+      />
+      <span className="w-10 tabular-nums text-white">{(current.mod[key] ?? 0).toFixed(3)}</span>
     </label>
   )
 
@@ -175,6 +193,10 @@ export default function Lab() {
         {num('contrast', 'contrast', 0.6, 5, 1.9)}
         {num('pivot', 'pivot', 0.3, 0.9, 0.6)}
         {num('ink level', 'threshold', 0.1, 0.9, 0.5)}
+
+        <span className="mx-1 h-4 w-px bg-white/20" />
+        {mod('ink w/ motion', 'pivotByDrive', -0.15, 0.15)}
+        {mod('boil', 'pivotByJitter', 0, 0.03)}
 
         <span className="mx-1 h-4 w-px bg-white/20" />
         {GROUNDS.map((g) => (

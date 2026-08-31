@@ -13,7 +13,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { dither, toImageData, type DitherOptions } from './dither'
+import { dither, toImageData } from './dither'
+import type { MotionFrame } from './Hands'
 
 export type HandProps = {
   src: string
@@ -22,25 +23,26 @@ export type HandProps = {
   className: string
   /** Wrapper transform for the mirror and any base rotation. */
   baseTransform: string
-  look: DitherOptions
   /**
    * How far BELOW native the dither runs, 0..1. This is the dot size control:
    * 0.4 means four-tenths the pixels, each one drawn four times bigger. It is
    * also the performance control, quadratically.
    */
   pixelScale: number
-  /** Live values, read every frame without re-rendering React. */
-  motion: React.RefObject<{ transform: string; blend: number }>
+  /**
+   * Live values, read every frame without re-rendering React. The LOOK arrives
+   * here too, already modulated by the animation, so the treatment and the
+   * movement can never disagree about what moment it is.
+   */
+  motion: React.RefObject<MotionFrame>
   ditherOn: boolean
 }
 
-export function Hand({ src, srcB, className, baseTransform, look, pixelScale, motion, ditherOn }: HandProps) {
+export function Hand({ src, srcB, className, baseTransform, pixelScale, motion, ditherOn }: HandProps) {
   const move = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const frames = useRef<{ a: ImageData; b: ImageData | null; out: ImageData } | null>(null)
-  const lookRef = useRef(look)
-  lookRef.current = look
   const onRef = useRef(ditherOn)
   onRef.current = ditherOn
 
@@ -87,9 +89,11 @@ export function Hand({ src, srcB, className, baseTransform, look, pixelScale, mo
       if (!ctx) return
 
       // Only redraw when something that affects the PIXELS changed. The
-      // transform above changes every frame; the dithered image usually does
-      // not, and repainting 115k pixels for nothing is the easy mistake here.
-      const lookKey = JSON.stringify(lookRef.current)
+      // transform above changes every frame; the treatment now usually does
+      // too, but it is quantised so imperceptible drift does not trigger a
+      // repaint of every pixel.
+      const L = m.look
+      const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}`
       const blend = f.b ? m.blend : 0
       if (
         Math.abs(blend - lastBlend) < 0.008 &&
@@ -107,7 +111,7 @@ export function Hand({ src, srcB, className, baseTransform, look, pixelScale, mo
         ctx.putImageData(blend > 0.5 && f.b ? f.b : f.a, 0, 0)
         return
       }
-      dither(f.a, f.b, f.out, size.w, { ...lookRef.current, blend })
+      dither(f.a, f.b, f.out, size.w, { ...L, blend })
       ctx.putImageData(f.out, 0, 0)
     }
 
