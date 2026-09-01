@@ -44,35 +44,41 @@ export type Pin = {
 }
 
 /**
- * GOD'S HAND — the human. Fingers point LEFT in the source, so reaching is
- * roughly 180 degrees. Read off a grid overlay of the actual crop rather than
- * guessed; the dither is forgiving of a few percent either way.
+ * THE HUMAN — God's hand. Arm enters LEFT, fingers extend RIGHT and slightly
+ * down. Read off a grid overlay of human-2, the first pose in the sequence.
+ *
+ * Re-derived when the pose crops landed: the earlier pins were measured on a
+ * differently-framed crop (460x250 landscape against 366x419 upright), so every
+ * one of them pointed at the wrong part of the hand. Pins are normalised, which
+ * makes that failure silent — they scale happily onto an image they no longer
+ * describe.
  */
 export const HUMAN_PINS: readonly Pin[] = [
-  // The index finger is the one doing the reaching, so it travels furthest,
-  // shakes hardest and leads. The eye goes to the gap, and this is the gap.
-  { id: 'index', x: 0.04, y: 0.5, weight: 1, lag: 0, dir: 184, shake: 1 },
-  { id: 'knuckle', x: 0.22, y: 0.44, weight: 0.45, lag: 0.035, dir: 186, shake: 0.5 },
-  { id: 'mid', x: 0.17, y: 0.79, weight: 0.6, lag: 0.045, dir: 200, shake: 0.8 },
-  { id: 'ring', x: 0.3, y: 0.82, weight: 0.5, lag: 0.06, dir: 208, shake: 0.7 },
-  { id: 'palm', x: 0.35, y: 0.52, weight: 0.3, lag: 0.05, dir: 188, shake: 0.35 },
-  { id: 'wrist', x: 0.5, y: 0.45, weight: 0.14, lag: 0.07, dir: 190, shake: 0.18 },
+  // The longest finger leads the reach, travels furthest and shakes hardest.
+  // The eye goes to the gap, and this is the finger that makes it.
+  { id: 'index', x: 0.77, y: 0.57, weight: 1, lag: 0, dir: 14, shake: 1 },
+  { id: 'mid', x: 0.67, y: 0.65, weight: 0.72, lag: 0.035, dir: 26, shake: 0.82 },
+  { id: 'ring', x: 0.58, y: 0.67, weight: 0.55, lag: 0.05, dir: 32, shake: 0.7 },
+  { id: 'thumb', x: 0.5, y: 0.55, weight: 0.34, lag: 0.045, dir: 8, shake: 0.42 },
+  { id: 'knuckle', x: 0.46, y: 0.49, weight: 0.34, lag: 0.04, dir: 14, shake: 0.36 },
+  { id: 'wrist', x: 0.28, y: 0.45, weight: 0.14, lag: 0.065, dir: 12, shake: 0.16 },
   // Anchored. The arm runs off the frame edge and must not move at all.
-  { id: 'arm', x: 0.95, y: 0.25, weight: 0, lag: 0, dir: 0, shake: 0 },
+  { id: 'arm', x: 0.02, y: 0.55, weight: 0, lag: 0, dir: 0, shake: 0 },
 ]
 
 /**
- * ADAM'S HAND — the machine. Wrist enters LEFT, fingers droop down-right. It
- * barely moves: the point is that it is composed while the other hand shakes.
+ * THE MACHINE — Adam's hand. Arm enters RIGHT and high, fingers hang down-LEFT.
+ * It barely moves: the whole point is that it stays composed while the other
+ * hand shakes.
  */
 export const MACHINE_PINS: readonly Pin[] = [
-  { id: 'tipA', x: 0.67, y: 0.79, weight: 1, lag: 0, dir: 250, shake: 1 },
-  { id: 'tipB', x: 0.8, y: 0.72, weight: 0.8, lag: 0.07, dir: 255, shake: 0.8 },
-  { id: 'tipC', x: 0.9, y: 0.58, weight: 0.6, lag: 0.11, dir: 262, shake: 0.6 },
-  { id: 'knuckle', x: 0.58, y: 0.42, weight: 0.3, lag: 0.09, dir: 258, shake: 0.3 },
-  { id: 'back', x: 0.45, y: 0.32, weight: 0.15, lag: 0.12, dir: 260, shake: 0.15 },
-  // Anchored at the wrist, where the arm leaves the frame.
-  { id: 'arm', x: 0.03, y: 0.25, weight: 0, lag: 0, dir: 0, shake: 0 },
+  { id: 'tipA', x: 0.28, y: 0.78, weight: 1, lag: 0, dir: 214, shake: 1 },
+  { id: 'tipB', x: 0.38, y: 0.79, weight: 0.8, lag: 0.07, dir: 220, shake: 0.8 },
+  { id: 'tipC', x: 0.48, y: 0.75, weight: 0.6, lag: 0.11, dir: 228, shake: 0.6 },
+  { id: 'knuckle', x: 0.6, y: 0.5, weight: 0.3, lag: 0.09, dir: 224, shake: 0.3 },
+  { id: 'wrist', x: 0.72, y: 0.35, weight: 0.14, lag: 0.12, dir: 226, shake: 0.14 },
+  // Anchored where the arm leaves the frame.
+  { id: 'arm', x: 0.98, y: 0.15, weight: 0, lag: 0, dir: 0, shake: 0 },
 ]
 
 /**

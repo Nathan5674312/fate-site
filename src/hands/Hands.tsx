@@ -158,10 +158,25 @@ export const DEFAULT_OPTIONS: HandsOptions = {
  * index 0 must be the most relaxed and the last the most extended. Reorder the
  * array and you reorder the gesture.
  *
- * One entry is a still hand, which is the current state.
+ * Order is Nathan's: composite 2, 1, 4, 3. Chosen so NEIGHBOURING poses are
+ * similar, because only neighbours are ever mixed. His four stills have the arm
+ * at genuinely different heights, and 2 -> 3 would move the whole hand far
+ * enough to read as a cut rather than a gesture; 2 -> 1 -> 4 -> 3 keeps every
+ * step small. Both hands follow the same order, since each composite is one
+ * moment of the same gesture.
  */
-const HUMAN_POSES = ['/art/human-god-hand.png']
-const MACHINE_POSES = ['/art/ai-adam-hand.png']
+const HUMAN_POSES = [
+  '/art/poses/human-2.png',
+  '/art/poses/human-1.png',
+  '/art/poses/human-4.png',
+  '/art/poses/human-3.png',
+]
+const MACHINE_POSES = [
+  '/art/poses/machine-2.png',
+  '/art/poses/machine-1.png',
+  '/art/poses/machine-4.png',
+  '/art/poses/machine-3.png',
+]
 
 /**
  * Pose units are hand-local, sized for a rig rather than a photograph, so the
@@ -372,6 +387,12 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full -translate-x-1/2 -translate-y-1/2 sm:min-w-[160vh]">
       {/*
+        * NO scaleX(-1) any more. The old single crops were cut from the fresco
+        * pointing the wrong way and had to be mirrored; Nathan's pose art
+        * already points the right way — human arm in from the left reaching
+        * right, machine arm in from the top right hanging down-left. Mirroring
+        * them now would send both hands away from each other.
+        *
         * Each hand is two nested elements. The OUTER carries static placement —
         * where, which way round, how big — and the INNER is the only thing the
         * animation touches. Composing a mirror and a rotation into one matrix
@@ -383,8 +404,8 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[26%] left-[3%] w-[46%]"
-        baseTransform="scaleX(-1) rotate(-18deg)"
+        className="absolute bottom-[6%] left-[2%] w-[43%]"
+        baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         pins={HUMAN_PINS}
         motion={humanMotion}
@@ -392,8 +413,8 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[16%] left-[53%] w-[30%]"
-        baseTransform="scaleX(-1) rotate(14deg)"
+        className="absolute top-[4%] left-[50%] w-[34%]"
+        baseTransform="rotate(10deg)"
         pixelScale={options.machine.pixelScale}
         pins={MACHINE_PINS}
         motion={machineMotion}
