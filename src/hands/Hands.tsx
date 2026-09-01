@@ -508,17 +508,18 @@ export function Hands({ options }: { options: HandsOptions }) {
         * put them 556px apart and stacked vertically. The gap is the subject of
         * the picture, so it cannot be a function of the window shape.
         *
-        * On sm+ min-w-[160vh] guarantees the box is at least 1.6x the viewport
-        * height, so at 16:10 its height always covers and the frame crops in
-        * from the edges, exactly like object-fit: cover.
+        * min-w-[168vh] guarantees the box is wider than 1.6x the viewport height, so
+        * at 16:10 its height always covers and the frame crops in from the
+        * edges, exactly like object-fit: cover.
         *
-        * BELOW sm that rule is dropped, and it has to be. Measured at 280px:
-        * covering meant the stage was 707px wide, so only 40%% of the
-        * composition was on screen - and the visible 40%% did not include the
-        * gap, which is the entire subject. Narrow screens get the whole picture
-        * fitted to the width instead, smaller but intact.
+        * This used to be sm-only, with narrow screens getting a fit-to-width
+        * stage instead — because when the hands were small, covering showed
+        * only 40%% of the composition and the visible part did not include the
+        * gap. That is no longer true: the hands are now sized to bleed off the
+        * frame deliberately, so fitting merely letterboxes them and stops the
+        * arms reaching the viewport edges at all.
         */}
-      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full -translate-x-1/2 -translate-y-1/2 sm:min-w-[160vh]">
+      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[168vh] -translate-x-1/2 -translate-y-1/2">
       {/*
         * NO scaleX(-1) any more. The old single crops were cut from the fresco
         * pointing the wrong way and had to be mirrored; Nathan's pose art
@@ -531,13 +532,15 @@ export function Hands({ options }: { options: HandsOptions }) {
         * animation touches. Composing a mirror and a rotation into one matrix
         * is how sign errors get in.
         *
-        * Placement pulls the fingertips together. Measured at 1440x900 they were
-        * 501px apart, which reads as two objects in opposite corners rather than
-        * a near-touch. The gap IS the subject, so it is kept tight.
+        * Placement pulls the fingertips together AND keeps them near the stage
+        * centre. The stage covers, so a narrow viewport sees a centred crop of
+        * it: at 280px with the meeting point at 74%% of stage width the whole
+        * gap fell off the right edge. The gap is the subject, so it has to
+        * survive the crop at every width, which means living near the middle.
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[-8%] left-[-8%] w-[76%]"
+        className="absolute bottom-[-8%] left-[-32%] w-[76%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
@@ -548,7 +551,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[30%] left-[54%] w-[54%]"
+        className="absolute top-[-24%] left-[42%] w-[54%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}
