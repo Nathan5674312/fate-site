@@ -182,9 +182,9 @@ export const HUMAN_CFG = {
   elbowDeg: -5.2,
   /** Tremor at the elbow. Small in degrees, large by the time it reaches the
    *  fingertips — which is exactly how a real arm shakes. */
-  elbowTremor: 0.09,
+  elbowTremor: 0.025,
   /** Baseline tremor displacement. Doubled at the hold by the effort term. */
-  tremorAmp: 0.26,
+  tremorAmp: 0.07,
   /** Wrist rotation added at full effort. */
   wristRot: -5,
   /**
@@ -318,7 +318,7 @@ const TREM1 = HUMAN_CFG.effortHz * PHI
  * remain. Cutting only the amplitude would have made every burst weaker; this
  * makes them rarer instead, and rare is what he has been asking for throughout.
  */
-const TREMOR_GATE = 0.58
+const TREMOR_GATE = 0.66
 
 export function tremorEnvelope(t: number): number {
   const n = 0.5 + 0.5 * fbm(t * TREM1 * 5.2, 3, 401)

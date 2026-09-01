@@ -331,11 +331,15 @@ const POSE_PLACES: readonly (readonly [number, number])[] = [
  * How hard the hand trembles in each pose, as a multiplier.
  *
  * Index 1 is human-1, the splayed fingers-up pose — the one that looks like it
- * is at the limit, so it is the one that shakes. Nathan: increase the tremor
- * when the fingers are up. The others sit at or below normal, so the difference
- * between poses is felt rather than the whole thing simply being louder.
+ * is at the limit, so it is the one that shakes most. The others sit at or below
+ * normal, so the difference between poses is felt rather than everything simply
+ * being louder.
+ *
+ * The peak was 2.2 and is now 1.35. At 2.2 it more than undid a reduction made
+ * one commit earlier: the multiplier landed on exactly the pose the eye rests
+ * on, so the tremor came back louder than before it was cut.
  */
-const POSE_STRAIN = [0.55, 2.2, 0.75, 1.1] as const
+const POSE_STRAIN = [0.7, 1.35, 0.8, 1] as const
 
 /** Seconds of holding a pose before its strain is fully wound up. */
 const STRAIN_RAMP = 3.5
@@ -358,7 +362,10 @@ function poseOffset(pose: number): { x: number; y: number } {
 
 const HUMAN_REACH = 9
 /*
- * 3.4 -> 0.9 -> 0.6 -> 0.26 across four rounds of Nathan watching it. This is the
+ * 3.4 -> 0.9 -> 0.6 -> 0.26 -> 0.06 across five rounds of Nathan watching it,
+ * the last one after I cut it and then immediately multiplied it back up by
+ * adding a 2.2x strain on the fingers-up pose. Turning a thing down and scaling
+ * it up in the same breath is how it kept coming back. This is the
  * dominant visible shake - it displaces the fingertips directly - so it is the
  * number that matters, well ahead of tremorAmp or elbowTremor in motion.ts.
  *
@@ -366,7 +373,7 @@ const HUMAN_REACH = 9
  * the hand sits near-still most of the time and peaks slightly ABOVE the old
  * constant 0.9 when it trembles. Lower average, higher peak, visible variation.
  */
-const HUMAN_SHAKE = 0.26
+const HUMAN_SHAKE = 0.06
 const MACHINE_REACH = 5
 const MACHINE_SHAKE = 0.9
 

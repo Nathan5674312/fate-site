@@ -278,12 +278,16 @@ check('tremor amplitude roughly doubles at full extension', () => {
    * the envelope was widened, which looked like the doubling had broken when
    * nothing about it had changed. Isolate the claim, then test the claim.
    */
+  // Sampled over 300s rather than 90s: the tremor gate now leaves the envelope
+  // at exactly zero for most of its life, and those samples are unusable here
+  // (dividing them out is a division by zero), so a short window could fail to
+  // catch a peak and a trough that both coincide with an active burst.
   const rate = 600
   let highPeak = 0
   let lowPeak = 0
   let sawHigh = false
   let sawLow = false
-  for (let i = 0; i < 90 * rate; i++) {
+  for (let i = 0; i < 300 * rate; i++) {
     const t = i / rate
     const e = H.effort(t)
     const full = H.humanPose(t, -38, undefined, { effort: 1, tremor: 1 })
@@ -474,7 +478,11 @@ check('the tremor comes in bursts, with real stillness between', () => {
 
   assert(lo === 0, `must go completely still, quietest was ${lo}`)
   inRange(hi, 1.4, 2.1, 'strongest the tremor gets')
-  inRange(stillShare, 0.15, 0.7, 'share of time completely still')
+  // Ceiling raised from 0.7 to 0.92 deliberately: after five rounds of "turn it
+  // down" the hand is SUPPOSED to be still most of the time, and the bursts are
+  // supposed to be occasional. A test that failed on that would be enforcing an
+  // intent that has since been overruled.
+  inRange(stillShare, 0.15, 0.92, 'share of time completely still')
 })
 
 check('the bursts arrive often enough to read as a pattern of stops and starts', () => {
