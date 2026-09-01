@@ -23,6 +23,37 @@ Evidence for the category claims below lives in `docs/design-research.md`
 | Quality bar | The work curated on recent.design / godly — award tier | Nathan |
 | Mobile app | App Store + Play buttons at launch, **disabled until the listings are real** | Nathan + honesty rule |
 
+## 2b. Order from chaos — the scroll thesis
+
+**Locked as a direction, 2026-08-31. Nothing built.** Full write-up, with the
+research and the implementation levers, lives in the vault:
+`Universal Vault/Fate/Fate Site - Order From Chaos Scroll.md`.
+
+The page starts visually disordered and resolves into order as the reader
+scrolls, so scrolling feels like the product working — the same argument the
+hands make, told again in the layout. It suits Fate exactly: the product's claim
+is that it makes a messy folder legible, so the page should do that to itself.
+
+The four things worth knowing here, so this file is not just a pointer:
+
+- **Clutter is a lack of GROUPING, not a quantity of stuff** (Rosenholtz). The
+  dial is feature VARIANCE, not element count — which means the page can hold
+  the same content throughout and change only how it groups.
+- **Ease of processing is itself experienced as pleasure** (Reber, Schwarz,
+  Winkielman). So "more organised" and "more appealing" are one axis, not a
+  trade-off. This is why the idea works rather than merely tidying up.
+- **Simplicity and prototypicality are separate dials** running through
+  different neural pathways — bottom-up visual cleanliness against top-down
+  layout conventionality. Two levers, not one.
+- **Regularity is implementable as jitter off a lattice.** Every element sits at
+  its finished grid position plus a random offset; scroll progress scales that
+  offset to zero. One number drives the whole effect and the end state IS the
+  real design.
+
+Hard rules carried over: the mess is aesthetic and never functional, legibility
+never participates, reduced motion and no-JS both get the RESOLVED state, and
+the CTA sits at maximum fluency because that is where the decision is made.
+
 ## 2. Open — waiting on Nathan
 
 - **What the fold is.** The arch and the graph are cut and nothing replaced
