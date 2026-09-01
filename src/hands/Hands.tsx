@@ -551,7 +551,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[-24%] left-[42%] w-[54%]"
+        className="absolute top-[-45%] left-[42%] w-[72%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}
