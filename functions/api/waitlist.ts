@@ -31,7 +31,24 @@ const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/
 /** Longer than any real address; a bound so a huge body cannot reach the DB. */
 const MAX_EMAIL = 254
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+/**
+ * ONE handler with an explicit method check, rather than exporting
+ * `onRequestPost` alone.
+ *
+ * Exporting only the POST handler meant every other method fell through to the
+ * static asset router, so `GET /api/waitlist` returned the site's index.html
+ * with a 200 — an API path serving a web page. Nothing leaked, but any client
+ * expecting JSON would have parsed a chunk of HTML instead of being told
+ * plainly that the method is wrong.
+ *
+ * A single `onRequest` avoids the other trap too: exporting `onRequest`
+ * ALONGSIDE `onRequestPost` makes precedence between them a thing you have to
+ * remember rather than read.
+ */
+export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
+  if (request.method !== 'POST') {
+    return json({ error: 'method' }, 405, { allow: 'POST' })
+  }
   let body: unknown
   try {
     body = await request.json()
@@ -75,9 +92,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   return json({ ok: true }, 201)
 }
 
-function json(data: unknown, status: number): Response {
+function json(data: unknown, status: number, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...extra },
   })
 }

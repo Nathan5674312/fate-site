@@ -7,9 +7,13 @@ pages_build_output_dir = "dist"
 # The waitlist store. D1 is Cloudflare's SQLite: free tier, and the addresses
 # stay in an account Nathan owns rather than on a form vendor's server.
 #
-# database_id is filled in by `wrangler d1 create fate-waitlist` — it is not a
-# secret, but it does not exist until the database does. See README.
+# database_id came from `wrangler d1 create fate-waitlist`, 2026-08-31. Not a
+# secret - it is an account-scoped identifier and useless without credentials -
+# so it belongs in the repo rather than in someone's notes.
+#
+# The binding stays DB, not the fate_waitlist that wrangler suggested: the
+# Worker reads env.DB, and the binding name is the variable name.
 [[d1_databases]]
 binding = "DB"
 database_name = "fate-waitlist"
-database_id = "REPLACE_AFTER_d1_create"
+database_id = "64cfb508-1084-48ea-a3ad-b842a05cb939"
