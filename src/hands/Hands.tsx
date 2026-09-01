@@ -534,9 +534,21 @@ export function Hands({ options }: { options: HandsOptions }) {
         *
         * Placement pulls the fingertips together AND keeps them near the stage
         * centre. The stage covers, so a narrow viewport sees a centred crop of
-        * it: at 280px with the meeting point at 74%% of stage width the whole
+        * it: at 280px with the meeting point at 74% of stage width the whole
         * gap fell off the right edge. The gap is the subject, so it has to
         * survive the crop at every width, which means living near the middle.
+        *
+        * 🔴 THE MACHINE'S SLICED WRIST IS HIDDEN BY ARITHMETIC, NOT BY THE MASK.
+        * Its crop puts the cut end at 0.97 of the canvas width and 0.10 of its
+        * height, and the canvas is ~1.5x wider than tall, so:
+        *
+        *     left + 0.97 * width          must exceed 100%  ->  42 + 69.8 = 112%
+        *     top  + 0.10 * (width / 1.07) must fall below 0% -> -26 + 10.8 = -15%
+        *
+        * Both hold with room to spare. Move `top` above about -15% and the cut
+        * edge walks back into frame. Change `width` and `top` TOGETHER: the
+        * fingers sit ~78% down the canvas, so resizing alone moves the fingertip
+        * by a large fraction of the stage and the hands stop meeting.
         */}
       <Hand
         srcs={HUMAN_POSES}
@@ -551,7 +563,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[-45%] left-[42%] w-[72%]"
+        className="absolute top-[-26%] left-[42%] w-[72%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}
