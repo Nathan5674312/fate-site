@@ -36,6 +36,7 @@ import {
   nextDegrade,
   effort,
   feintAmount,
+  drift,
   sway,
   tremor,
   tremorEnvelope,
@@ -270,7 +271,17 @@ function pinOffsets(
     const tr = tremor(t - pin.lag, i * 1.7) * gain.tremor
     const travel = pin.weight * (reach * e + shake * pin.shake * tr * env)
     const a = pin.dir * DEG
-    return { x: Math.cos(a) * travel, y: Math.sin(a) * travel }
+    /*
+     * Every pin also wanders on its OWN seed, in both axes independently. This
+     * is the part that stops the hand reading as one rigid shape being pushed
+     * around: the fingers disagree with each other slightly, all the time, the
+     * way real ones do. Slow enough to be felt rather than seen.
+     */
+    const w = pin.weight * WANDER
+    return {
+      x: Math.cos(a) * travel + drift(t, 300 + i * 61, 0.075) * w,
+      y: Math.sin(a) * travel + drift(t, 700 + i * 83, 0.065) * w,
+    }
   })
 }
 
@@ -280,6 +291,9 @@ function pinOffsets(
  * more and the photograph visibly rubberises, and a stretched fresco reads as a
  * bug rather than as strain.
  */
+/** How far each pin aimlessly wanders, in source pixels, at full weight. */
+const WANDER = 2.4
+
 const HUMAN_REACH = 9
 /*
  * 3.4 -> 0.9 -> 0.6 across three rounds of Nathan watching it. This is the
@@ -523,7 +537,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[2%] left-[2%] w-[52%]"
+        className="absolute bottom-[-8%] left-[-8%] w-[76%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
@@ -534,7 +548,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[44%] left-[62%] w-[34%]"
+        className="absolute top-[30%] left-[54%] w-[54%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}

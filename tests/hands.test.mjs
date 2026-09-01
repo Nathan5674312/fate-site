@@ -147,6 +147,99 @@ check('the machine dangle never repeats', () => {
   assertNeverRepeats('sway', (t) => H.sway(t))
 })
 
+/* --------------------------------------------------- noise not sines --- */
+
+check('the drift is aperiodic, not a sine in disguise', () => {
+  /*
+   * Nathan: the hands "just go in a back and fourth movement like there
+   * swaying". A sum of sines cannot fix that however the frequencies are
+   * chosen - irrational ratios stop it REPEATING but not being smooth and
+   * symmetric, and the eye reads a sine in about two cycles.
+   *
+   * A sine spends its time at the extremes (its value distribution is
+   * U-shaped, densest near +/-1). Noise spends its time in the middle. So
+   * bucketing the values apart tells the two families of signal apart, which is
+   * a test of the property that actually matters rather than of the numbers.
+   */
+  const sampleHist = (fn) => {
+    const bins = new Array(10).fill(0)
+    const n = 40000
+    for (let i = 0; i < n; i++) {
+      const v = fn(i / 40)
+      bins[Math.min(9, Math.max(0, Math.floor((v + 1) / 2 * 10)))]++
+    }
+    return bins.map((b) => b / n)
+  }
+  const middle = (h) => h[3] + h[4] + h[5] + h[6]
+  const edges = (h) => h[0] + h[9]
+
+  const sine = sampleHist((t) => Math.sin(t * 1.7) * 0.6 + Math.sin(t * 1.1) * 0.4)
+  const drifted = sampleHist((t) => H.drift(t, 5, 0.4))
+
+  assert(
+    middle(drifted) > middle(sine),
+    `noise should sit mid-range more than a sine does (${middle(drifted).toFixed(2)} vs ${middle(sine).toFixed(2)})`,
+  )
+  assert(
+    edges(drifted) < edges(sine),
+    `noise should pin to the extremes less than a sine does (${edges(drifted).toFixed(2)} vs ${edges(sine).toFixed(2)})`,
+  )
+})
+
+check('fractal noise carries detail at several scales', () => {
+  /*
+   * "All the little random things add up" is what octaves ARE. One octave is a
+   * slow wander with nothing inside it; four have structure at every scale.
+   *
+   * Compared as fine detail RELATIVE TO the signal's own size, not in absolute
+   * terms — fbm normalises its octaves, so the base octave of a four-octave sum
+   * is quieter than a one-octave sum and an absolute comparison mostly measures
+   * that normalisation instead of the property being claimed.
+   */
+  const roughness = (fn) => {
+    let e = 0
+    let sq = 0
+    const n = 4000
+    const step = 0.02
+    let prev = fn(0)
+    for (let i = 1; i < n; i++) {
+      const v = fn(i * step)
+      e += Math.abs(v - prev)
+      sq += v * v
+      prev = v
+    }
+    return e / n / Math.sqrt(sq / n)
+  }
+  const one = roughness((t) => H.fbm(t, 1, 3))
+  const four = roughness((t) => H.fbm(t, 4, 3))
+  assert(
+    four > one * 1.5,
+    `four octaves should be much rougher per unit amplitude (${four.toFixed(4)} vs ${one.toFixed(4)})`,
+  )
+})
+
+check('drift stays in range and never repeats', () => {
+  let lo = 9
+  let hi = -9
+  for (let i = 0; i < 60000; i++) {
+    const v = H.drift(i / 40, 5, 0.3)
+    if (v < lo) lo = v
+    if (v > hi) hi = v
+  }
+  inRange(lo, -1.01, -0.2, 'drift minimum')
+  inRange(hi, 0.2, 1.01, 'drift maximum')
+  assertNeverRepeats('drift', (t) => H.drift(t, 5, 0.3))
+})
+
+check('every finger wanders on its own path', () => {
+  // Shared noise across the fingers would be a sine with extra steps: all five
+  // would drift as one rigid piece.
+  const t = 12.34
+  const paths = H.FINGER_IDS.map((id) => H.drift(t, 900 + id.length * 37, 0.09))
+  const distinct = new Set(paths.map((v) => v.toFixed(6)))
+  assert(distinct.size >= 3, `fingers share drift paths: ${paths.map((v) => v.toFixed(3))}`)
+})
+
 check('effort surges at the configured rate', () => {
   const secs = 40
   const rate = 500
@@ -224,9 +317,16 @@ check('fingers lag the palm (follow-through is real)', () => {
   const pose = H.humanPose(t, -38, undefined, { effort: 1, tremor: 0 })
   const spread = (e) => -cfg.extend.index * e + cfg.curl.index * (1 - e)
 
+  /*
+   * The aimless wander is SUBTRACTED before comparing. It is a separate,
+   * deliberate component on its own seed, so leaving it in makes this measure
+   * lag and drift at once — which is how it started reading 0.279 against 0.942
+   * and looked like follow-through had broken when nothing about it had.
+   */
+  const wander = H.drift(t, 900 + 'index'.length * 37, 0.09) * 2.2
   const lagged = spread(H.effort(t - cfg.lag.index))
   const instant = spread(H.effort(t))
-  near(pose.fingers.index[0], lagged, 1e-9, 'index MCP should follow the lagged effort')
+  near(pose.fingers.index[0] - wander, lagged, 1e-9, 'index MCP should follow the lagged effort')
   assert(
     Math.abs(instant - lagged) > 0.5,
     'test is inconclusive — pick a moment where effort moves faster',

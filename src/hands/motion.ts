@@ -88,6 +88,70 @@ export function rng(seed: number): () => number {
   }
 }
 
+/* ------------------------------------------------------------- noise --- */
+
+/**
+ * 🔴 WHY THIS FILE STOPPED BEING MADE OF SINES.
+ *
+ * Nathan: "the hands just go in a back and fourth movement like there swaying,
+ * change that make it more random. all the little random things we can add up
+ * the more realistic the hands will be moving."
+ *
+ * He is right and the diagnosis is exact. A sum of two or three sines IS a
+ * sway — irrational frequency ratios stop it repeating, but they cannot stop it
+ * being smooth, symmetric and endlessly predictable. The eye reads the shape of
+ * a sine wave in about two cycles.
+ *
+ * The formal version of "lots of little random things adding up" is FRACTAL
+ * NOISE: value noise summed over several octaves, each half the amplitude and
+ * roughly double the frequency. That gives motion with structure at every
+ * scale — slow wandering, medium corrections, small jitter — all at once, and
+ * genuinely aperiodic rather than merely long-period.
+ *
+ * Deterministic, so it stays testable: same seed, same motion, every load.
+ */
+
+function hash1(i: number, seed: number): number {
+  let a = (Math.imul(i, 0x9e3779b1) + Math.imul(seed, 0x85ebca6b)) >>> 0
+  a ^= a >>> 15
+  a = Math.imul(a, 0x2c1b3c6d) >>> 0
+  a ^= a >>> 12
+  a = Math.imul(a, 0x297a2d39) >>> 0
+  a ^= a >>> 15
+  return (a >>> 0) / 4294967296
+}
+
+/** Smooth value noise, -1 to 1. One unit of x is one random control point. */
+export function noise(x: number, seed = 0): number {
+  const i = Math.floor(x)
+  const f = x - i
+  // Smoothstep, so the curve has no corners where control points meet.
+  const u = f * f * (3 - 2 * f)
+  return (hash1(i, seed) * (1 - u) + hash1(i + 1, seed) * u) * 2 - 1
+}
+
+/**
+ * Fractal noise: octaves of `noise` stacked. This is the "little random things
+ * adding up" — each octave contributes detail at its own scale.
+ *
+ * The frequency step is 2.03 rather than 2 on purpose. Exact doubling makes the
+ * octaves share control points, so they line up periodically and reintroduce
+ * the very structure this exists to avoid.
+ */
+export function fbm(x: number, octaves = 4, seed = 0): number {
+  let sum = 0
+  let amp = 1
+  let freq = 1
+  let norm = 0
+  for (let o = 0; o < octaves; o++) {
+    sum += noise(x * freq, seed + o * 101) * amp
+    norm += amp
+    amp *= 0.5
+    freq *= 2.03
+  }
+  return sum / norm
+}
+
 /* ----------------------------------------------------------- the human --- */
 
 export const HUMAN_CFG = {
@@ -171,6 +235,18 @@ export function effort(t: number, cfg = HUMAN_CFG): number {
 }
 
 /**
+ * Slow aimless drift, -1 to 1. Layered under everything so no part of either
+ * hand ever holds still in the way only a computed thing does.
+ *
+ * Separate seeds per caller, so the wrist, each finger and each hand wander
+ * independently — which is the whole point. Shared noise is just a sine with
+ * extra steps.
+ */
+export function drift(t: number, seed: number, rate = 0.11): number {
+  return fbm(t * rate, 4, seed)
+}
+
+/**
  * Physiological tremor, roughly -1 to 1. Three sines in and just above the
  * 8-12Hz band, weighted so the dominant component sits around 10Hz.
  *
@@ -223,16 +299,16 @@ export function tremor(t: number, phase = 0): number {
  * default state, so the tremble is an event. A symmetric envelope would read as
  * a slow throb.
  *
- * Both rates stay slower than the effort surge and separated by PHI, so the
- * waxing never syncs with the reach or lands on a pattern.
+ * Driven by fBm now rather than a pair of sines, so the waxing is itself
+ * irregular — a hand that trembles on a schedule is still a machine.
  */
 const TREM1 = HUMAN_CFG.effortHz * PHI
-const TREM2 = TREM1 * PHI
 
 export function tremorEnvelope(t: number): number {
-  const a = 0.5 + 0.5 * Math.sin(TAU * TREM1 * t)
-  const b = 0.5 + 0.5 * Math.sin(TAU * TREM2 * t + 2.2)
-  return 0.05 + 1.5 * Math.pow(a * 0.62 + b * 0.38, 2)
+  // fBm rather than two sines: the waxing and waning should itself be
+  // irregular, or the hand trembles on a schedule.
+  const n = 0.5 + 0.5 * fbm(t * TREM1 * 5.2, 3, 401)
+  return 0.05 + 1.5 * Math.pow(clamp01(n), 2)
 }
 
 /**
@@ -269,7 +345,10 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
     const spread = -cfg.extend[id] * lagged + cfg.curl[id] * (1 - lagged)
     const jitter =
       tremor(t - cfg.lag[id], id.length) * 1.1 * (1 + lagged) * gain.tremor * tremorEnvelope(t)
-    fingers[id] = [spread + jitter, spread * 0.45, spread * 0.3]
+    // Every finger wanders on its own seed. Shared noise would be a sine with
+    // extra steps: all five would drift as one piece.
+    const wander = drift(t, 900 + id.length * 37, 0.09) * 2.2
+    fingers[id] = [spread + jitter + wander, spread * 0.45, spread * 0.3]
   }
 
   return {
@@ -277,9 +356,9 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
       reach * cfg.elbowDeg +
       tremor(t) * cfg.elbowTremor * (1 + reach) * gain.tremor * tremorEnvelope(t),
     wrist: {
-      dx: Math.cos(r) * reach * cfg.reach + shake * 0.7,
-      dy: Math.sin(r) * reach * cfg.reach + shake * 0.5,
-      rot: reach * cfg.wristRot + shake * 0.35,
+      dx: Math.cos(r) * reach * cfg.reach + shake * 0.7 + drift(t, 11, 0.08) * 3.2,
+      dy: Math.sin(r) * reach * cfg.reach + shake * 0.5 + drift(t, 29, 0.07) * 2.6,
+      rot: reach * cfg.wristRot + shake * 0.35 + drift(t, 53, 0.06) * 1.4,
     },
     fingers,
   }
@@ -314,9 +393,10 @@ export const MACHINE_CFG = {
  * same angle twice and never settles.
  */
 export function sway(t: number, cfg = MACHINE_CFG): number {
-  return (
-    (Math.sin(TAU * cfg.swayHz * t) + 0.62 * Math.sin(TAU * cfg.swayHz2 * t + 2.1)) / 1.62
-  )
+  // Was two sines, which is exactly the back-and-forth Nathan objected to.
+  // Four octaves of noise wanders instead: it drifts, pauses, corrects, and
+  // never arrives back where it was.
+  return fbm(t * cfg.swayHz * 1.9, 4, 17)
 }
 
 /* ------------------------------------------------------------- the feint --- */
