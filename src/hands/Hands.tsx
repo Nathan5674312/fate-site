@@ -182,6 +182,12 @@ export const DEFAULT_OPTIONS: HandsOptions = {
  * index 0 must be the most relaxed and the last the most extended. Reorder the
  * array and you reorder the gesture.
  *
+ * WRIST-REGISTERED. The arm-aligned set is still in /art/poses/ as a fallback.
+ * Aligning on the arm kept the arm still and let the HAND swing through about a
+ * third of the frame; aligning on the wrist keeps the hand still and lets the
+ * arm swing, which is both what a reach looks like and the better trade here,
+ * since the arm mostly runs off the frame edge.
+ *
  * Order is Nathan's: composite 2, 1, 4, 3. Chosen so NEIGHBOURING poses are
  * similar, because only neighbours are ever mixed. His four stills have the arm
  * at genuinely different heights, and 2 -> 3 would move the whole hand far
@@ -190,16 +196,16 @@ export const DEFAULT_OPTIONS: HandsOptions = {
  * moment of the same gesture.
  */
 const HUMAN_POSES = [
-  '/art/poses/human-2.png',
-  '/art/poses/human-1.png',
-  '/art/poses/human-4.png',
-  '/art/poses/human-3.png',
+  '/art/poses-wrist/human-2.png',
+  '/art/poses-wrist/human-1.png',
+  '/art/poses-wrist/human-4.png',
+  '/art/poses-wrist/human-3.png',
 ]
 const MACHINE_POSES = [
-  '/art/poses/machine-2.png',
-  '/art/poses/machine-1.png',
-  '/art/poses/machine-4.png',
-  '/art/poses/machine-3.png',
+  '/art/poses-wrist/machine-2.png',
+  '/art/poses-wrist/machine-1.png',
+  '/art/poses-wrist/machine-4.png',
+  '/art/poses-wrist/machine-3.png',
 ]
 
 /**
@@ -454,7 +460,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[20%] left-[6%] w-[43%]"
+        className="absolute bottom-[30%] left-[4%] w-[50%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
@@ -464,7 +470,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[9%] left-[39%] w-[34%]"
+        className="absolute top-[8%] left-[46%] w-[32%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}
