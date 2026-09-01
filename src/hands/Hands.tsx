@@ -282,23 +282,67 @@ function pinOffsets(
  */
 const HUMAN_REACH = 9
 /*
- * Cut from 3.4 to 0.9 on Nathan's note that the tremor was too much. This is the
+ * 3.4 -> 0.9 -> 0.6 across three rounds of Nathan watching it. This is the
  * dominant visible shake - it displaces the fingertips directly - so it is the
  * number that matters, well ahead of tremorAmp or elbowTremor in motion.ts.
- * Zero here leaves a hand that only surges; the lab slider goes there if wanted.
+ *
+ * Read together with tremorEnvelope, which now swings from about 0.05 to 1.5:
+ * the hand sits near-still most of the time and peaks slightly ABOVE the old
+ * constant 0.9 when it trembles. Lower average, higher peak, visible variation.
  */
-const HUMAN_SHAKE = 0.9
+const HUMAN_SHAKE = 0.6
 const MACHINE_REACH = 5
 const MACHINE_SHAKE = 0.9
 
-function transformOf(pose: Pose, travel: number): string {
+/**
+ * How far each hand travels toward the other between the top and bottom of the
+ * page, in CSS pixels. Split unevenly on purpose: the human closes more of the
+ * distance than the machine does, because the human is the one trying.
+ *
+ * 🔴 MUST STAY UNDER THE HORIZONTAL SEPARATION THE HANDS START WITH, which is
+ * about 44px in the current composition. Total closure is this plus 0.85 of it
+ * for the machine, so anything above ~20 makes them meet and then CROSS
+ * somewhere mid-page and separate on the far side. Measured at 90 the gap ran
+ * 29px to 187px and read as opening; at 45 it ran 50 to 20 to 66, closing then
+ * crossing. This number and the placement below are one decision, not two, and
+ * changing either without re-measuring the other reintroduces the crossing.
+ */
+const CLOSE_TRAVEL = 18
+
+function transformOf(pose: Pose, travel: number, closeX = 0, closeY = 0): string {
   const { dx, dy, rot } = pose.wrist
-  return `translate(${(dx * travel).toFixed(2)}px, ${(dy * travel).toFixed(2)}px) rotate(${(rot + pose.elbow).toFixed(2)}deg)`
+  const x = dx * travel + closeX
+  const y = dy * travel + closeY
+  return `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) rotate(${(rot + pose.elbow).toFixed(2)}deg)`
 }
 
 export function Hands({ options }: { options: HandsOptions }) {
   const opts = useRef(options)
   opts.current = options
+
+  /*
+   * Scroll progress, 0 at the top of the document to 1 at the bottom, kept in a
+   * ref and never in state. The hands redraw on their own rAF loop, so putting
+   * scroll in React state would re-render the tree on every scroll event to
+   * produce a number the render does not use.
+   *
+   * Passive listener: this never calls preventDefault, and saying so lets the
+   * browser scroll without waiting to find out.
+   */
+  const scroll = useRef(0)
+  useEffect(() => {
+    const read = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      scroll.current = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0
+    }
+    read()
+    window.addEventListener('scroll', read, { passive: true })
+    window.addEventListener('resize', read)
+    return () => {
+      window.removeEventListener('scroll', read)
+      window.removeEventListener('resize', read)
+    }
+  }, [])
 
   // Written by ONE loop and read by both hands. Two rAF loops is how the two
   // hands drift out of sync with each other.
@@ -385,8 +429,22 @@ export function Hands({ options }: { options: HandsOptions }) {
       // same gesture rather than three loops that drift apart over minutes.
       const e = effort(clock) * o.gain.effort
       const tr = tremor(clock) * o.gain.tremor
+      /*
+       * THE GAP CLOSES AS YOU SCROLL. Nathan wants the hands to follow the
+       * reader down rather than sit in the hero, and this is what makes that
+       * more than a fixed background: descending the page is what brings the
+       * two hands together. It is the same argument as the order-from-chaos
+       * thesis in DESIGN.md - scrolling resolves things.
+       *
+       * It never reaches zero. They approach and do not touch; the gap IS the
+       * subject, and closing it entirely would answer a question the page is
+       * asking on purpose.
+       */
+      const s = scroll.current
+      const close = s * CLOSE_TRAVEL
+
       humanMotion.current = {
-        transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL),
+        transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL, close, 0),
         blend: e,
         /*
          * The EFFORT CURVE drives the pose sequence directly, so the surge that
@@ -403,7 +461,9 @@ export function Hands({ options }: { options: HandsOptions }) {
 
       const reaching = feintAmount(feint, clock)
       machineMotion.current = {
-        transform: transformOf(machinePose(clock, feint), MACHINE_TRAVEL),
+        // No vertical component: the machine sits below the human's fingertip,
+        // so drifting it down added to the distance while x was removing it.
+        transform: transformOf(machinePose(clock, feint), MACHINE_TRAVEL, -close * 0.85, 0),
         blend: 0,
         look: modulate(o.machine.look, o.machine.mod, {
           primary: reaching,
@@ -424,7 +484,7 @@ export function Hands({ options }: { options: HandsOptions }) {
   }, [])
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="hands-layer absolute inset-0 overflow-hidden">
       {/*
         * THE STAGE: a fixed 16:10 box, centred, sized to COVER the frame.
         *
@@ -463,7 +523,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[16%] left-[4%] w-[50%]"
+        className="absolute bottom-[2%] left-[2%] w-[52%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
@@ -474,7 +534,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[22%] left-[46%] w-[32%]"
+        className="absolute top-[44%] left-[62%] w-[34%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}

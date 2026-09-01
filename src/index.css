@@ -110,3 +110,21 @@ body {
   outline-offset: 3px;
   border-radius: 2px;
 }
+
+/*
+ * The hands sit behind every section now, so their ink has to lose the argument
+ * with body copy. Dropped here rather than in the dither so the treatment stays
+ * the one Nathan tuned - this is a display concern, not a look concern.
+ */
+.hands-layer canvas {
+  opacity: 0.55;
+}
+
+/* Reduced motion gets them quieter still: a persistent background is more
+   present than a hero band, and someone who asked for less motion should not
+   get more of it just because it followed them down the page. */
+@media (prefers-reduced-motion: reduce) {
+  .hands-layer canvas {
+    opacity: 0.3;
+  }
+}

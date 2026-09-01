@@ -175,8 +175,16 @@ check('effort is asymmetric — pushes faster than it sags', () => {
 })
 
 check('tremor amplitude roughly doubles at full extension', () => {
-  // The documented relationship: amplitude scales with force, so it is largest
-  // exactly when the hand is at its limit.
+  /*
+   * Amplitude scales with force, so it is largest exactly when the hand is at
+   * its limit — the (1 + reach) term.
+   *
+   * The waxing envelope is DIVIDED OUT before comparing. It varies independently
+   * of effort, so a raw peak-vs-trough comparison measures both at once and
+   * reports whatever the two happened to be doing together: it read 1.55 after
+   * the envelope was widened, which looked like the doubling had broken when
+   * nothing about it had changed. Isolate the claim, then test the claim.
+   */
   const rate = 600
   let highPeak = 0
   let lowPeak = 0
@@ -187,7 +195,9 @@ check('tremor amplitude roughly doubles at full extension', () => {
     const e = H.effort(t)
     const full = H.humanPose(t, -38, undefined, { effort: 1, tremor: 1 })
     const none = H.humanPose(t, -38, undefined, { effort: 1, tremor: 0 })
-    const shake = Math.abs(full.wrist.dx - none.wrist.dx)
+    const env = H.tremorEnvelope(t)
+    if (env < 0.05) continue
+    const shake = Math.abs(full.wrist.dx - none.wrist.dx) / env
     if (e > 0.95) { highPeak = Math.max(highPeak, shake); sawHigh = true }
     if (e < 0.03) { lowPeak = Math.max(lowPeak, shake); sawLow = true }
   }
@@ -353,9 +363,27 @@ check('the tremor waxes and wanes', () => {
   for (let i = 0; i < 400 * rate; i++) vals.push(H.tremorEnvelope(i / rate))
   const lo = Math.min(...vals)
   const hi = Math.max(...vals)
-  inRange(lo, 0.2, 0.45, 'quietest the tremor gets')
-  inRange(hi, 1.1, 1.5, 'strongest the tremor gets')
-  assert(hi / lo > 3, `envelope should swing at least 3x, got ${(hi / lo).toFixed(2)}`)
+  inRange(lo, 0.01, 0.15, 'quietest the tremor gets')
+  inRange(hi, 1.2, 1.7, 'strongest the tremor gets')
+  assert(hi / lo > 8, `envelope should swing at least 8x, got ${(hi / lo).toFixed(2)}`)
+})
+
+check('the tremor fluctuation is fast enough to notice', () => {
+  // The first version swung over ~25s and ~40s and Nathan could not see it at
+  // all. A fluctuation nobody notices within one viewing is not a fluctuation,
+  // so this asserts the thing that was actually wrong rather than that the
+  // numbers merely differ.
+  const rate = 50
+  const secs = 60
+  let crossings = 0
+  const mid = 0.6
+  let prev = H.tremorEnvelope(0)
+  for (let i = 1; i <= secs * rate; i++) {
+    const v = H.tremorEnvelope(i / rate)
+    if ((prev < mid && v >= mid) || (prev > mid && v <= mid)) crossings++
+    prev = v
+  }
+  assert(crossings >= 8, `only ${crossings} swings in a minute — too slow to read`)
 })
 
 check('the tremor envelope is biased toward calm', () => {

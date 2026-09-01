@@ -205,21 +205,34 @@ export function tremor(t: number, phase = 0): number {
  * seconds, then gathering again. Constant amplitude is the giveaway that a
  * shake was generated rather than fought.
  *
- * Deliberately biased LOW. Raising the product to a power above 1 means the
- * envelope spends most of its time near the bottom of its range and only
- * occasionally peaks, so the calm is the default and the shaking is an event.
- * A symmetric envelope would just read as a slow throb.
+ * 🔴 THE FIRST VERSION WAS IMPERCEPTIBLE, and Nathan said so: "i don't notice a
+ * fluctuation". Two reasons, both worth keeping written down.
  *
- * The two rates are ~25s and ~40s and separated by PHI, so the waxing and waning
- * never lands on a pattern — same rule as every other oscillator in this file.
+ * It was too SLOW — periods of ~25s and ~40s, so seeing the pattern meant
+ * watching for a minute. And it was too NARROW — a 0.25 to 1.4 swing on an
+ * amplitude already small enough to be subtle is a modulation of something
+ * barely visible in the first place.
+ *
+ * Now ~8s and ~12s, which is perceptible inside one viewing, and a swing from
+ * near-zero to well above the old constant. The BASE amplitude came down to pay
+ * for it, so the hand is mostly still and trembles occasionally rather than
+ * buzzing continuously — quieter on average AND far more noticeable, which
+ * sounds contradictory and is not: contrast is what gets noticed, not level.
+ *
+ * Still biased low. Raising the mix to a power above 1 keeps calm as the
+ * default state, so the tremble is an event. A symmetric envelope would read as
+ * a slow throb.
+ *
+ * Both rates stay slower than the effort surge and separated by PHI, so the
+ * waxing never syncs with the reach or lands on a pattern.
  */
-const TREM1 = HUMAN_CFG.effortHz * PHI * 0.31
+const TREM1 = HUMAN_CFG.effortHz * PHI
 const TREM2 = TREM1 * PHI
 
 export function tremorEnvelope(t: number): number {
   const a = 0.5 + 0.5 * Math.sin(TAU * TREM1 * t)
   const b = 0.5 + 0.5 * Math.sin(TAU * TREM2 * t + 2.2)
-  return 0.25 + 1.15 * Math.pow(a * 0.65 + b * 0.35, 1.6)
+  return 0.05 + 1.5 * Math.pow(a * 0.62 + b * 0.38, 2)
 }
 
 /**

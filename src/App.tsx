@@ -163,32 +163,52 @@ export default function App() {
       </a>
 
       {/*
-        * THE FOLD.
+        * THE HANDS ARE NO LONGER IN THE FOLD. Nathan: they follow the reader
+        * down instead of sitting in the hero.
         *
-        * Creation of Adam, inverted: God's hand is the HUMAN, straining and
-        * trembling in from the left; Adam's is the MACHINE, limp and composed,
-        * declining to close the gap. Both are photographs, dithered to 1-bit on
-        * a canvas and deformed per finger. See docs/hands.md.
+        * So they live in a FIXED layer behind the whole document, and scroll
+        * progress closes the gap between them (see Hands.tsx). Descending the
+        * page is what brings the two hands together, which is the same argument
+        * as the order-from-chaos thesis - scrolling resolves things.
         *
-        * 🔴 COPY SITS BELOW THE ART, NOT ON IT, and that is measured rather than
-        * taste. With the text beside the hands, 100%% of the machine hand's ink
-        * fell inside the headline column at 1440x900 — half the concept buried
-        * under type and dimmed by a scrim to keep the type readable. The hands
-        * are a wide diagonal; anything set beside them fights them. Stacking
-        * also deletes the scrim entirely, so the art stops being dimmed at all,
-        * and collapses two layouts into one.
+        * `-z-10` with an explicit background on the layer rather than on body:
+        * a fixed element behind transparent content needs something to paint
+        * on, or the hands composite against whatever the browser feels like.
+        *
+        * aria-hidden because it is decoration. A screen reader announcing two
+        * canvases would be noise, and the argument they make is entirely visual.
         */}
-      <section className="flex min-h-[94svh] flex-col justify-center gap-6 px-6 pt-16 pb-12 sm:gap-8">
-        <div className="relative h-[34svh] w-full shrink-0 sm:h-[40svh]">
-          <Hands options={DEFAULT_OPTIONS} />
-        </div>
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-ink">
+        <Hands options={DEFAULT_OPTIONS} />
+      </div>
 
-        <div className="mx-auto w-full max-w-3xl">
-          <h1 className="font-display text-4xl leading-[1.05] text-sand sm:text-6xl">
+      {/*
+        * THE FOLD, now type only. It sits ON the hands rather than beside them,
+        * so the ink is dropped back (see index.css .hands-layer) far enough for
+        * body copy to stay readable over it.
+        */}
+      <section className="flex min-h-[92svh] flex-col justify-center px-6 pt-24 pb-16">
+        <div className="relative mx-auto w-full max-w-3xl">
+          {/*
+            * A plate under the copy, not a scrim over the art.
+            *
+            * With the hands fixed behind the whole page they land on the sub
+            * paragraph, and it measurably stopped being comfortable to read.
+            * Dimming the whole layer to fix that would turn the art into faint
+            * texture everywhere; this pushes the ground back only where type
+            * actually sits, so the hands stay legible in the space around it.
+            *
+            * Radial rather than a rectangle so it has no edge to notice.
+            */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-x-10 -inset-y-12 bg-[radial-gradient(70%_65%_at_38%_50%,var(--color-ink)_45%,transparent_100%)]"
+          />
+          <h1 className="relative font-display text-4xl leading-[1.05] text-sand sm:text-6xl">
             {HERO.headline}
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
-          <div className="mt-9 flex flex-wrap items-center gap-4">
+          <p className="relative mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
+          <div className="relative mt-9 flex flex-wrap items-center gap-4">
             <a
               href="#waitlist"
               className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
