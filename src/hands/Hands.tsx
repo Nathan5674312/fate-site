@@ -320,7 +320,7 @@ function poseOffset(pose: number, count: number): number {
 
 const HUMAN_REACH = 9
 /*
- * 3.4 -> 0.9 -> 0.6 across three rounds of Nathan watching it. This is the
+ * 3.4 -> 0.9 -> 0.6 -> 0.26 across four rounds of Nathan watching it. This is the
  * dominant visible shake - it displaces the fingertips directly - so it is the
  * number that matters, well ahead of tremorAmp or elbowTremor in motion.ts.
  *
@@ -328,7 +328,7 @@ const HUMAN_REACH = 9
  * the hand sits near-still most of the time and peaks slightly ABOVE the old
  * constant 0.9 when it trembles. Lower average, higher peak, visible variation.
  */
-const HUMAN_SHAKE = 0.6
+const HUMAN_SHAKE = 0.26
 const MACHINE_REACH = 5
 const MACHINE_SHAKE = 0.9
 
