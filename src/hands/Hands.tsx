@@ -299,23 +299,61 @@ function pinOffsets(
 const WANDER = 2.4
 
 /**
- * 🔴 PIXELS EACH POSE SITS APART. A POSITION, NOT A SPEED.
+ * 🔴 WHERE EACH POSE SITS — SCATTERED, NOT ON A LINE.
  *
- * The first version displaced the hand in proportion to how FAST the pose was
- * changing. That is a bump: it rises from zero, peaks mid-crossing and returns
- * to zero, so the hand lurched out and snapped back every time. Nathan: "the
- * hands keep jolting forward." Exactly what a velocity-driven offset does.
+ * A POSITION, NOT A SPEED. The first version displaced the hand in proportion to
+ * how FAST the pose was changing, which is a bump: up from zero, peak, back to
+ * zero. The hand lurched out and snapped back every time. Position-based means
+ * a crossing carries the hand somewhere and leaves it.
  *
- * Tying it to the pose POSITION instead means each pose has its own resting
- * place and a crossing genuinely carries the hand from one to the next, where
- * it stays. The speed still peaks mid-crossing on its own, because the crossing
- * is eased - so the trail still smears - but nothing ever springs back.
+ * SCATTERED because the first position version put pose i at (i - mid) * spread
+ * — a straight line. The order the poses are chosen in was already random, but
+ * every crossing still slid along the same track, which is what reads as
+ * "revolving in line of four". Nathan asked for them to trade randomly; the
+ * order was not the problem, the geometry was. With 2D places that are not
+ * collinear, consecutive crossings head off in genuinely different directions.
+ *
+ * The vertical spread is deliberately LARGER than the horizontal. Measured
+ * bearings with a smaller one still clustered near 0 and 180 degrees, because
+ * the poses themselves differ mostly horizontally and that swamped the offsets.
+ * To read as scattered, these have to out-argue the art.
+ *
+ * Indexed to match HUMAN_POSES / MACHINE_POSES.
  */
-const POSE_SPREAD = 15
+const POSE_PLACES: readonly (readonly [number, number])[] = [
+  [-17, 16],
+  [12, -19],
+  [-6, 24],
+  [19, -9],
+]
 
-/** Where a pose sits, in pixels, relative to the middle of the sequence. */
-function poseOffset(pose: number, count: number): number {
-  return (pose - (count - 1) / 2) * POSE_SPREAD
+/**
+ * How hard the hand trembles in each pose, as a multiplier.
+ *
+ * Index 1 is human-1, the splayed fingers-up pose — the one that looks like it
+ * is at the limit, so it is the one that shakes. Nathan: increase the tremor
+ * when the fingers are up. The others sit at or below normal, so the difference
+ * between poses is felt rather than the whole thing simply being louder.
+ */
+const POSE_STRAIN = [0.55, 2.2, 0.75, 1.1] as const
+
+/** Seconds of holding a pose before its strain is fully wound up. */
+const STRAIN_RAMP = 3.5
+
+function lerpAt(table: readonly number[], pose: number): number {
+  const i = Math.max(0, Math.min(table.length - 1, Math.floor(pose)))
+  const j = Math.min(table.length - 1, i + 1)
+  return table[i] + (table[j] - table[i]) * (pose - i)
+}
+
+function poseOffset(pose: number): { x: number; y: number } {
+  const i = Math.max(0, Math.min(POSE_PLACES.length - 1, Math.floor(pose)))
+  const j = Math.min(POSE_PLACES.length - 1, i + 1)
+  const f = pose - i
+  return {
+    x: POSE_PLACES[i][0] + (POSE_PLACES[j][0] - POSE_PLACES[i][0]) * f,
+    y: POSE_PLACES[i][1] + (POSE_PLACES[j][1] - POSE_PLACES[i][1]) * f,
+  }
 }
 
 const HUMAN_REACH = 9
@@ -480,8 +518,17 @@ export function Hands({ options }: { options: HandsOptions }) {
        */
       const humanPoseAt = poseAt(humanStep, clock)
       const machinePoseAt = poseAt(machineStep, clock)
-      const humanSweep = poseOffset(humanPoseAt, HUMAN_POSES.length)
-      const machineSweep = poseOffset(machinePoseAt, MACHINE_POSES.length) * 0.7
+      const humanSweep = poseOffset(humanPoseAt)
+      const machineSweep = poseOffset(machinePoseAt)
+
+      /*
+       * Strain WINDS UP while a pose is held rather than arriving with it, so
+       * the fingers-up pose starts calm and gradually loses its composure —
+       * which is what being at the limit looks like. Reset by the next crossing.
+       */
+      const heldFor = Math.max(0, clock - poseStepEnd(humanStep))
+      const ramp = Math.min(1, heldFor / STRAIN_RAMP)
+      const strain = 1 + (lerpAt(POSE_STRAIN, humanPoseAt) - 1) * ramp
 
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
@@ -504,16 +551,23 @@ export function Hands({ options }: { options: HandsOptions }) {
 
       humanMotion.current = {
         transform: transformOf(
-          humanPose(clock, -38, undefined, o.gain),
+          humanPose(clock, -38, undefined, { ...o.gain, tremor: o.gain.tremor * strain }),
           HUMAN_TRAVEL,
-          close + humanSweep,
-          humanSweep * 0.45,
+          close + humanSweep.x,
+          humanSweep.y,
         ),
         blend: e,
         pose: humanPoseAt,
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
-        offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain, tremorEnvelope(clock)),
+        offsets: pinOffsets(
+          HUMAN_PINS,
+          clock,
+          HUMAN_REACH,
+          HUMAN_SHAKE,
+          o.gain,
+          tremorEnvelope(clock) * strain,
+        ),
       }
 
       const reaching = feintAmount(feint, clock)
@@ -523,8 +577,8 @@ export function Hands({ options }: { options: HandsOptions }) {
         transform: transformOf(
           machinePose(clock, feint),
           MACHINE_TRAVEL,
-          -close * 0.85 + machineSweep,
-          machineSweep * -0.4,
+          -close * 0.85 + machineSweep.x * 0.7,
+          machineSweep.y * 0.7,
         ),
         blend: 0,
         look: modulate(o.machine.look, o.machine.mod, {
