@@ -454,18 +454,41 @@ check('a feint straightens the chosen finger and no other', () => {
   near(held.fingers.middle[0], idle.fingers.middle[0], 1e-9, 'middle must be untouched')
 })
 
-check('the tremor waxes and wanes', () => {
-  // A constant tremor is a motor. A real hand at its limit mostly holds and
-  // occasionally loses it, so the envelope has to move - and move slowly enough
-  // to read as fatigue rather than as another oscillation.
+check('the tremor comes in bursts, with real stillness between', () => {
+  /*
+   * Nathan: "shaky then stops trying not shaky then even more then shaky then
+   * stops then imedently shaking like crazy."
+   *
+   * That is bursts, and a smooth envelope cannot produce them however wide its
+   * range — on the way between two levels it is always somewhere in the middle.
+   * The gate is what buys genuine stillness, and the stillness is what makes
+   * the next burst read as sudden. So: it must hit EXACTLY zero, spend a real
+   * share of its life there, and peak high.
+   */
   const rate = 20
   const vals = []
-  for (let i = 0; i < 400 * rate; i++) vals.push(H.tremorEnvelope(i / rate))
+  for (let i = 0; i < 600 * rate; i++) vals.push(H.tremorEnvelope(i / rate))
   const lo = Math.min(...vals)
   const hi = Math.max(...vals)
-  inRange(lo, 0.01, 0.15, 'quietest the tremor gets')
-  inRange(hi, 1.2, 1.7, 'strongest the tremor gets')
-  assert(hi / lo > 8, `envelope should swing at least 8x, got ${(hi / lo).toFixed(2)}`)
+  const stillShare = vals.filter((v) => v === 0).length / vals.length
+
+  assert(lo === 0, `must go completely still, quietest was ${lo}`)
+  inRange(hi, 1.4, 2.1, 'strongest the tremor gets')
+  inRange(stillShare, 0.15, 0.7, 'share of time completely still')
+})
+
+check('the bursts arrive often enough to read as a pattern of stops and starts', () => {
+  const rate = 20
+  let bursts = 0
+  let inBurst = false
+  const secs = 120
+  for (let i = 0; i < secs * rate; i++) {
+    const on = H.tremorEnvelope(i / rate) > 0
+    if (on && !inBurst) bursts++
+    inBurst = on
+  }
+  const perMinute = bursts / (secs / 60)
+  inRange(perMinute, 3, 40, 'tremor bursts per minute')
 })
 
 check('the tremor fluctuation is fast enough to notice', () => {
@@ -498,8 +521,48 @@ check('the tremor envelope is biased toward calm', () => {
   assert(below / n > 0.5, `should sit calm most of the time, was ${(below / n * 100).toFixed(0)}%`)
 })
 
-check('the tremor envelope never repeats', () => {
-  assertNeverRepeats('tremor envelope', (t) => H.tremorEnvelope(t))
+/*
+ * No never-repeats check on the envelope any more, and deliberately: it now
+ * returns EXACTLY zero for seconds at a time, so two quiet windows are
+ * legitimately identical and the test would fail on the feature working. The
+ * noise underneath it is still covered by the drift and fbm checks.
+ */
+
+check('the pose sequence changes slowly', () => {
+  /*
+   * The transitions were driven by the effort curve, whose push phase is 28%
+   * of the cycle by design — so the hand walked all four poses in about a
+   * second and halving the surge rate barely touched it. Nathan said twice that
+   * it was too fast. This asserts the fix at the level the complaint was about:
+   * how long a full traverse of the sequence takes.
+   */
+  const rate = 20
+  const secs = 600
+  const vals = []
+  for (let i = 0; i < secs * rate; i++) vals.push(H.poseDrive(i / rate, 4))
+
+  inRange(Math.min(...vals), 0, 0.6, 'pose sequence should reach the first pose')
+  inRange(Math.max(...vals), 2.4, 3, 'pose sequence should reach the last pose')
+
+  // Mean speed, in poses per second. One pose per several seconds, not four
+  // per second.
+  let travel = 0
+  for (let i = 1; i < vals.length; i++) travel += Math.abs(vals[i] - vals[i - 1])
+  const posesPerSecond = travel / secs
+  assert(
+    posesPerSecond < 0.2,
+    `pose changes too fast: ${posesPerSecond.toFixed(3)} poses/sec (want well under 0.2)`,
+  )
+})
+
+check('the two hands do not change pose together', () => {
+  // Offset clocks, or the picture pulses as one thing instead of two.
+  let same = 0
+  for (let i = 0; i < 4000; i++) {
+    const t = i / 8
+    if (Math.abs(H.poseDrive(t, 4) - H.poseDrive(t * 0.7 + 40, 4)) < 0.05) same++
+  }
+  assert(same / 4000 < 0.2, `hands track each other too closely (${(same / 40).toFixed(0)}% of the time)`)
 })
 
 /* -------------------------------------------------- the degradation --- */

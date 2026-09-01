@@ -37,6 +37,7 @@ import {
   effort,
   feintAmount,
   drift,
+  poseDrive,
   sway,
   tremor,
   tremorEnvelope,
@@ -106,7 +107,7 @@ export const HUMAN_LOOK: HandLook = {
    * dissolve alone still looked like, because the poses differ enough that even
    * a per-pixel mix arrives suddenly.
    */
-  trail: 0.42,
+  trail: 0.62,
   /*
    * Densifies hard at the peak of a surge and thins on the sag, so the hand
    * looks like it is tensing rather than sliding. The jitter term is the boil:
@@ -143,7 +144,7 @@ export const MACHINE_LOOK: HandLook = {
   pixelScale: 0.8,
   /** Shorter than the human's: this hand moves rarely, and a long tail on a
    *  still hand is just a blur. */
-  trail: 0.3,
+  trail: 0.5,
   /*
    * Far quieter, and driven by the FEINT rather than by effort. It solidifies
    * slightly as it considers reaching and thins again as it withdraws, so the
@@ -460,14 +461,10 @@ export function Hands({ options }: { options: HandsOptions }) {
       humanMotion.current = {
         transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL, close, 0),
         blend: e,
-        /*
-         * The EFFORT CURVE drives the pose sequence directly, so the surge that
-         * shakes the hand is the same surge that pushes it through the poses.
-         * At the peak of a reach it is at the last pose; on the sag it falls
-         * back through them. One gesture, not an animation playing alongside a
-         * separate one.
-         */
-        pose: e * (HUMAN_POSES.length - 1),
+        // Its own slow clock, NOT the effort curve - see poseDrive. Effort's
+        // push phase is fast by design, so driving poses from it walked the
+        // hand through all four in about a second regardless of the surge rate.
+        pose: poseDrive(clock, HUMAN_POSES.length),
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain, tremorEnvelope(clock)),
@@ -483,8 +480,9 @@ export function Hands({ options }: { options: HandsOptions }) {
           primary: reaching,
           jitter: sway(clock),
         }),
-        // The machine only changes pose when it feints. Otherwise it holds.
-        pose: reaching * (MACHINE_POSES.length - 1),
+        // Slower still than the human's, and offset, so the two hands never
+        // change pose together.
+        pose: poseDrive(clock * 0.7 + 40, MACHINE_POSES.length),
         block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }

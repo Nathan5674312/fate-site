@@ -76,13 +76,21 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
   // part (a distance per pixel per pin).
   const warp = useRef<{ weights: Float32Array; field: Field } | null>(null)
   /*
-   * The freshly dithered frame is staged here before being composited onto the
-   * visible canvas. putImageData writes pixels RAW - it ignores globalAlpha and
-   * globalCompositeOperation entirely - so a trail is impossible while drawing
-   * that way. Going through an offscreen canvas and drawImage is what makes the
-   * fade available at all.
+   * 🔴 THE TRAIL IS DONE IN FLOATS, NOT BY CANVAS COMPOSITING, AND IT HAS TO BE.
+   *
+   * The first version faded the previous frame with `destination-out`, which
+   * scales alpha PROPORTIONALLY. Canvas alpha is 8-bit, so once alpha * fade
+   * falls below 0.5 the subtraction rounds to nothing and the pixel stops
+   * fading — it sticks. Every pose ever drawn left a permanent residue at
+   * roughly 16% opacity, which showed up as a flat grey silhouette of the other
+   * poses visible behind the hand at all times. Lengthening the tail made it
+   * worse, because a gentler fade stalls at a HIGHER alpha.
+   *
+   * Here the history is a Float32 per pixel and the decay is SUBTRACTED, so it
+   * reaches exactly zero and stays there. Linear rather than exponential, which
+   * suits a glowstick anyway: it dims at a constant rate rather than lingering.
    */
-  const stage = useRef<HTMLCanvasElement | null>(null)
+  const hist = useRef<Float32Array | null>(null)
   const trailRef = useRef(trail)
   trailRef.current = trail
   const onRef = useRef(ditherOn)
@@ -113,10 +121,7 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
         )
       }
       frames.current = { poses: usable, out: new ImageData(ia.width, ia.height) }
-      const off = document.createElement('canvas')
-      off.width = ia.width
-      off.height = ia.height
-      stage.current = off
+      hist.current = new Float32Array(ia.width * ia.height)
       warp.current = {
         weights: buildWeights(pins, ia.width, ia.height),
         field: makeField(ia.width, ia.height),
@@ -193,30 +198,30 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
       }
       dither(a, b, f.out, size.w, { ...L, blend, block: m.block }, field)
 
-      const off = stage.current
       const t = trailRef.current
-      if (!off || t <= 0) {
+      const h = hist.current
+      if (!h || t <= 0) {
         ctx.clearRect(0, 0, size.w, size.h)
         ctx.putImageData(f.out, 0, 0)
         return
       }
 
-      off.getContext('2d')!.putImageData(f.out, 0, 0)
-      /*
-       * Decay what is already there by subtracting alpha, rather than painting
-       * a translucent black over it. `destination-out` removes alpha uniformly,
-       * which keeps the background TRANSPARENT - painting black would restore
-       * the rectangle the cut-out exists to get rid of.
-       *
-       * Each frame keeps (1 - fade) of the last, so brightness falls off
-       * exponentially and the tail length is roughly 1/fade frames.
-       */
-      const fade = 1 / (1 + t * 55)
-      ctx.globalCompositeOperation = 'destination-out'
-      ctx.fillStyle = `rgba(0,0,0,${fade})`
-      ctx.fillRect(0, 0, size.w, size.h)
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.drawImage(off, 0, 0)
+      // Frames for a fresh mark to fade to nothing. trail 0.62 -> ~1.1s.
+      const decay = 255 / (1 + t * 110)
+      const px = f.out.data
+      const [ir, ig, ib] = L.ink ?? [244, 244, 245]
+      for (let i = 0, p = 0; i < px.length; i += 4, p++) {
+        // New ink relights the pixel outright; everything else steps down by a
+        // fixed amount, so it lands on exactly 0 rather than approaching it.
+        const lit = px[i + 3] > 128
+        const v = lit ? 255 : h[p] - decay
+        h[p] = v > 0 ? v : 0
+        px[i] = ir
+        px[i + 1] = ig
+        px[i + 2] = ib
+        px[i + 3] = h[p]
+      }
+      ctx.putImageData(f.out, 0, 0)
     }
 
     raf = requestAnimationFrame(frame)

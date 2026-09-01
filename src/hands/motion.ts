@@ -304,11 +304,25 @@ export function tremor(t: number, phase = 0): number {
  */
 const TREM1 = HUMAN_CFG.effortHz * PHI
 
+/**
+ * Below this the hand is COMPLETELY still. Above it the tremble comes on fast.
+ *
+ * Nathan wanted "shaky then stops trying not shaky then even more then shaky
+ * then stops then imedently shaking like crazy" — bursts, not a swell. A smooth
+ * envelope cannot do that however wide its range: it is always somewhere in the
+ * middle on the way between. A gate is what buys the stillness, and the
+ * stillness is what makes the next burst read as sudden.
+ */
+const TREMOR_GATE = 0.52
+
 export function tremorEnvelope(t: number): number {
-  // fBm rather than two sines: the waxing and waning should itself be
-  // irregular, or the hand trembles on a schedule.
   const n = 0.5 + 0.5 * fbm(t * TREM1 * 5.2, 3, 401)
-  return 0.05 + 1.5 * Math.pow(clamp01(n), 2)
+  if (n < TREMOR_GATE) return 0
+  // Steep onset: a power below 1 rises fast off the gate, so crossing it is an
+  // event rather than a fade-in. Peaks well above the old ceiling, which is the
+  // "shaking like crazy" end — affordable only because of the zeros.
+  const over = (n - TREMOR_GATE) / (1 - TREMOR_GATE)
+  return Math.pow(over, 0.6) * 1.9
 }
 
 /**
@@ -521,6 +535,45 @@ export function machinePose(t: number, feint: Feint | null, cfg = MACHINE_CFG): 
     },
     fingers,
   }
+}
+
+/* ------------------------------------------------- the pose sequence --- */
+
+/**
+ * 🔴 WHY SLOWING THE HAND DID NOT SLOW THE POSE CHANGES.
+ *
+ * Nathan, twice: the transitions are too fast, and after the last change they
+ * were "still the same speed". He was right, and halving the surge rate could
+ * never have fixed it.
+ *
+ * The pose position used to be `effort(t) * (poses - 1)`. Effort is a SHAPED
+ * curve — a fast push, a hold, a slow sag — and the push is only 28% of the
+ * cycle by design. So the hand walked through all four poses during that push,
+ * in about 1.3 seconds, no matter how slow the surge itself was. Halving the
+ * rate halved how OFTEN it happened and changed the transition speed barely at
+ * all.
+ *
+ * So the sequence now has its own clock, and a slow aimless one: it wanders
+ * through the poses over tens of seconds rather than being dragged through them
+ * by the reach. The cost is that the pose change and the strain surge are no
+ * longer the same gesture, which they were deliberately before — worth it,
+ * because the old coupling made the strongest argument for a speed nobody
+ * wanted.
+ */
+export const POSE_CFG = {
+  /** Noise units per second. One unit is roughly one pose-length wander. */
+  rate: 0.05,
+} as const
+
+export function poseDrive(t: number, count: number): number {
+  if (count <= 1) return 0
+  /*
+   * Gain above 0.5 and then clamped, because fBm rarely reaches its own
+   * extremes: at unity gain the walk bottomed out at 0.61 over ten minutes, so
+   * the FIRST pose was never actually shown. Overdriving and clipping means the
+   * ends of the sequence get real screen time instead of being asymptotes.
+   */
+  return clamp01(0.5 + 0.85 * fbm(t * POSE_CFG.rate, 3, 613)) * (count - 1)
 }
 
 /* --------------------------------------------------- the degradation --- */
