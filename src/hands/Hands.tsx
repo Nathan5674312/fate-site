@@ -40,7 +40,6 @@ import {
   drift,
   nextPoseStep,
   poseAt,
-  poseSpeed,
   poseStepEnd,
   sway,
   tremor,
@@ -300,13 +299,24 @@ function pinOffsets(
 const WANDER = 2.4
 
 /**
- * Pixels of physical travel per pose-per-second of crossing speed.
+ * 🔴 PIXELS EACH POSE SITS APART. A POSITION, NOT A SPEED.
  *
- * This is the glowstick dial. Too low and the hand teleports between poses with
- * nothing in between; too high and it lunges across the frame. The crossing
- * lasts ~0.4s and covers 1-3 poses, so speeds run about 2.5-7 poses/sec.
+ * The first version displaced the hand in proportion to how FAST the pose was
+ * changing. That is a bump: it rises from zero, peaks mid-crossing and returns
+ * to zero, so the hand lurched out and snapped back every time. Nathan: "the
+ * hands keep jolting forward." Exactly what a velocity-driven offset does.
+ *
+ * Tying it to the pose POSITION instead means each pose has its own resting
+ * place and a crossing genuinely carries the hand from one to the next, where
+ * it stays. The speed still peaks mid-crossing on its own, because the crossing
+ * is eased - so the trail still smears - but nothing ever springs back.
  */
-const SWEEP = 26
+const POSE_SPREAD = 15
+
+/** Where a pose sits, in pixels, relative to the middle of the sequence. */
+function poseOffset(pose: number, count: number): number {
+  return (pose - (count - 1) / 2) * POSE_SPREAD
+}
 
 const HUMAN_REACH = 9
 /*
@@ -464,16 +474,14 @@ export function Hands({ options }: { options: HandsOptions }) {
         machineStep = nextPoseStep(rand, clock, MACHINE_POSES.length, machineStep.to)
       }
       /*
-       * THE SWEEP. A pose crossing is not just a dissolve now - the hand also
-       * physically travels while it happens, and THAT is what the trail draws
-       * as a path from one pose to the next. Without it there is nothing moving
-       * between A and B for a trail to record, however long the trail is.
-       *
-       * Proportional to how fast the pose is changing, so it is zero while
-       * holding and peaks mid-crossing.
+       * THE SWEEP. Each pose sits at its own position, so a crossing carries
+       * the hand there and leaves it - which is what the trail draws as a path
+       * from A to B. Position, not velocity: see POSE_SPREAD.
        */
-      const humanSweep = poseSpeed(humanStep, clock) * SWEEP
-      const machineSweep = poseSpeed(machineStep, clock) * SWEEP * 0.7
+      const humanPoseAt = poseAt(humanStep, clock)
+      const machinePoseAt = poseAt(machineStep, clock)
+      const humanSweep = poseOffset(humanPoseAt, HUMAN_POSES.length)
+      const machineSweep = poseOffset(machinePoseAt, MACHINE_POSES.length) * 0.7
 
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
@@ -502,7 +510,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           humanSweep * 0.45,
         ),
         blend: e,
-        pose: poseAt(humanStep, clock),
+        pose: humanPoseAt,
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain, tremorEnvelope(clock)),
@@ -523,7 +531,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           primary: reaching,
           jitter: sway(clock),
         }),
-        pose: poseAt(machineStep, clock),
+        pose: machinePoseAt,
         block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
