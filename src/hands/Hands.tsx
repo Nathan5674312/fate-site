@@ -40,6 +40,7 @@ import {
   drift,
   nextPoseStep,
   poseAt,
+  poseBlend,
   poseStepEnd,
   sway,
   tremor,
@@ -237,10 +238,13 @@ export type MotionFrame = {
   blend: number
   look: DitherOptions
   /**
-   * Position along the pose sequence. 1.4 is forty percent of the way from
-   * pose 1 to pose 2. Not an index - the fraction is the dissolve.
+   * The two poses being crossed between, and how far through. NOT a position
+   * along the sequence: a crossing goes straight from one image to the other,
+   * and interpolating an index would display every pose in between.
    */
-  pose: number
+  poseFrom: number
+  poseTo: number
+  poseBlend: number
   /** Pixel displacement per pin, image space, same order as the hand's pins. */
   offsets: { x: number; y: number }[]
   /** Dot size this frame. Driven by the shared degradation event. */
@@ -431,10 +435,12 @@ export function Hands({ options }: { options: HandsOptions }) {
   // hands drift out of sync with each other.
   const zero = (pins: readonly Pin[]) => pins.map(() => ({ x: 0, y: 0 }))
   const humanMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, pose: 0, block: 1, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
+    transform: 'none', blend: 0, poseFrom: 0, poseTo: 0, poseBlend: 0, block: 1,
+    look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
   })
   const machineMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, pose: 0, block: 1, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
+    transform: 'none', blend: 0, poseFrom: 0, poseTo: 0, poseBlend: 0, block: 1,
+    look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
   })
 
   useEffect(() => {
@@ -479,7 +485,9 @@ export function Hands({ options }: { options: HandsOptions }) {
           blend: 0,
           look: modulate(o.human.look, o.human.mod, still),
           // Reduced motion holds the FIRST pose, never a half-dissolved one.
-          pose: 0,
+          poseFrom: 0,
+          poseTo: 0,
+          poseBlend: 0,
           block: 1,
           offsets: HUMAN_PINS.map(() => ({ x: 0, y: 0 })),
         }
@@ -487,7 +495,9 @@ export function Hands({ options }: { options: HandsOptions }) {
           transform: rest,
           blend: 0,
           look: modulate(o.machine.look, o.machine.mod, still),
-          pose: 0,
+          poseFrom: 0,
+          poseTo: 0,
+          poseBlend: 0,
           block: 1,
           offsets: MACHINE_PINS.map(() => ({ x: 0, y: 0 })),
         }
@@ -525,6 +535,7 @@ export function Hands({ options }: { options: HandsOptions }) {
        */
       const humanPoseAt = poseAt(humanStep, clock)
       const machinePoseAt = poseAt(machineStep, clock)
+      ;(window as any).__pose = { h: humanPoseAt, m: machinePoseAt, step: humanStep, clock }
       const humanSweep = poseOffset(humanPoseAt)
       const machineSweep = poseOffset(machinePoseAt)
 
@@ -564,7 +575,9 @@ export function Hands({ options }: { options: HandsOptions }) {
           humanSweep.y,
         ),
         blend: e,
-        pose: humanPoseAt,
+        poseFrom: humanStep.from,
+        poseTo: humanStep.to,
+        poseBlend: poseBlend(humanStep, clock),
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(
@@ -592,7 +605,9 @@ export function Hands({ options }: { options: HandsOptions }) {
           primary: reaching,
           jitter: sway(clock),
         }),
-        pose: machinePoseAt,
+        poseFrom: machineStep.from,
+        poseTo: machineStep.to,
+        poseBlend: poseBlend(machineStep, clock),
         block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }

@@ -610,12 +610,29 @@ export function poseStepEnd(s: PoseStep): number {
 
 /** Where along the sequence the hand is at time t. */
 export function poseAt(s: PoseStep, t: number): number {
-  if (t <= s.start) return s.from
-  if (t >= s.start + s.dur) return s.to
-  const p = (t - s.start) / s.dur
+  return s.from + (s.to - s.from) * poseBlend(s, t)
+}
+
+/**
+ * How far through the crossing we are, 0 at `from` and 1 at `to`.
+ *
+ * 🔴 THE RENDERER MUST USE THIS, NOT THE POSITION ABOVE. A crossing from pose 2
+ * to pose 0 passes through 1 on the number line, and a renderer that picks its
+ * two images from a continuous position therefore DISPLAYS pose 1 on the way —
+ * which showed up as one pose flashing for about half a second during every
+ * transition, measured as `4444 11 2222 11 3333`. The sequence order is not a
+ * path through the other poses; it is just an index. A crossing goes straight
+ * from one image to the other.
+ *
+ * The position is still what the physical sweep and the per-pose strain read,
+ * because those genuinely should ease between the two poses' values.
+ */
+export function poseBlend(s: PoseStep, t: number): number {
+  if (t <= s.start) return 0
+  if (t >= s.start + s.dur) return 1
   // Eased both ends so the crossing accelerates and settles rather than
   // starting and stopping at full speed.
-  return s.from + (s.to - s.from) * easeInOutSine(p)
+  return easeInOutSine((t - s.start) / s.dur)
 }
 
 /**

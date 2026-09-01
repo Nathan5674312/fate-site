@@ -157,17 +157,16 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
       const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}|${m.block}`
 
       /*
-       * Where we are along the pose sequence. `pose` is a position, not an
-       * index: 1.4 means 40 percent of the way from pose 1 to pose 2. Only the
-       * two NEIGHBOURING poses are ever mixed, so the dissolve stays a two-way
-       * choice per pixel however many poses exist.
+       * The two poses of THIS crossing, and nothing in between. Picking the pair
+       * from a continuous sequence position instead made every crossing walk
+       * the index line and briefly display each pose it passed over.
        */
       const last = f.poses.length - 1
-      const at = Math.min(Math.max(m.pose ?? 0, 0), last)
-      const i = Math.min(Math.floor(at), Math.max(0, last - 1))
-      const a = f.poses[i]
-      const b = last > 0 ? f.poses[i + 1] : null
-      const blend = last > 0 ? at - i : 0
+      const clamp = (n: number) => Math.min(Math.max(n | 0, 0), last)
+      const a = f.poses[clamp(m.poseFrom)]
+      const toIdx = clamp(m.poseTo)
+      const b = toIdx === clamp(m.poseFrom) ? null : f.poses[toIdx]
+      const blend = b ? Math.min(1, Math.max(0, m.poseBlend)) : 0
       // With a warp running the geometry changes every frame, so the skip only
       // applies when nothing is deforming. A trail also has to redraw every
       // frame regardless - the decay IS the animation, and skipping a frame
