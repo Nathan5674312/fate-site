@@ -199,10 +199,15 @@ export default function App() {
             * actually sits, so the hands stay legible in the space around it.
             *
             * Radial rather than a rectangle so it has no edge to notice.
+            *
+            * Tightened once: the first version was large and opaque enough to
+            * blanket the hands' fingertips, which is the only part of them that
+            * moves much. The page then looked like a still image while the same
+            * component animated fine in the lab.
             */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-x-10 -inset-y-12 bg-[radial-gradient(70%_65%_at_38%_50%,var(--color-ink)_45%,transparent_100%)]"
+            className="pointer-events-none absolute -inset-x-6 -inset-y-8 bg-[radial-gradient(62%_58%_at_38%_50%,var(--color-ink)_30%,transparent_100%)]"
           />
           <h1 className="relative font-display text-4xl leading-[1.05] text-sand sm:text-6xl">
             {HERO.headline}

@@ -39,7 +39,6 @@ import {
   feintAmount,
   drift,
   nextPoseStep,
-  poseAt,
   poseBlend,
   poseStepEnd,
   sway,
@@ -359,20 +358,32 @@ const POSE_STRAIN = [0.7, 1.35, 0.8, 1] as const
 /** Seconds of holding a pose before its strain is fully wound up. */
 const STRAIN_RAMP = 3.5
 
-function lerpAt(table: readonly number[], pose: number): number {
-  const i = Math.max(0, Math.min(table.length - 1, Math.floor(pose)))
-  const j = Math.min(table.length - 1, i + 1)
-  return table[i] + (table[j] - table[i]) * (pose - i)
+/*
+ * 🔴 BOTH OF THESE GO FROM -> TO DIRECTLY, NEVER ALONG THE INDEX LINE.
+ *
+ * The same mistake that made poses flash mid-crossing, one layer down. Reading
+ * a place at a CONTINUOUS sequence position meant a crossing from pose 0 to
+ * pose 3 lerped through the places of 1 and 2 on the way, so the hand zig-zagged
+ * through two intermediate positions instead of travelling straight there.
+ * Nathan: "they still kinda do this jolting when ever they switch images."
+ * The zig-zag IS the jolt.
+ *
+ * The sequence order is an index. It is not a route.
+ */
+function clampIdx(n: number, len: number): number {
+  return Math.max(0, Math.min(len - 1, Math.round(n)))
 }
 
-function poseOffset(pose: number): { x: number; y: number } {
-  const i = Math.max(0, Math.min(POSE_PLACES.length - 1, Math.floor(pose)))
-  const j = Math.min(POSE_PLACES.length - 1, i + 1)
-  const f = pose - i
-  return {
-    x: POSE_PLACES[i][0] + (POSE_PLACES[j][0] - POSE_PLACES[i][0]) * f,
-    y: POSE_PLACES[i][1] + (POSE_PLACES[j][1] - POSE_PLACES[i][1]) * f,
-  }
+function lerpBetween(table: readonly number[], from: number, to: number, blend: number): number {
+  const a = table[clampIdx(from, table.length)]
+  const b = table[clampIdx(to, table.length)]
+  return a + (b - a) * blend
+}
+
+function poseOffset(from: number, to: number, blend: number): { x: number; y: number } {
+  const a = POSE_PLACES[clampIdx(from, POSE_PLACES.length)]
+  const b = POSE_PLACES[clampIdx(to, POSE_PLACES.length)]
+  return { x: a[0] + (b[0] - a[0]) * blend, y: a[1] + (b[1] - a[1]) * blend }
 }
 
 const HUMAN_REACH = 9
@@ -544,11 +555,10 @@ export function Hands({ options }: { options: HandsOptions }) {
        * the hand there and leaves it - which is what the trail draws as a path
        * from A to B. Position, not velocity: see POSE_SPREAD.
        */
-      const humanPoseAt = poseAt(humanStep, clock)
-      const machinePoseAt = poseAt(machineStep, clock)
-      ;(window as any).__pose = { h: humanPoseAt, m: machinePoseAt, step: humanStep, clock }
-      const humanSweep = poseOffset(humanPoseAt)
-      const machineSweep = poseOffset(machinePoseAt)
+      const humanBlend = poseBlend(humanStep, clock)
+      const machineBlend = poseBlend(machineStep, clock)
+      const humanSweep = poseOffset(humanStep.from, humanStep.to, humanBlend)
+      const machineSweep = poseOffset(machineStep.from, machineStep.to, machineBlend)
 
       /*
        * Strain WINDS UP while a pose is held rather than arriving with it, so
@@ -557,7 +567,8 @@ export function Hands({ options }: { options: HandsOptions }) {
        */
       const heldFor = Math.max(0, clock - poseStepEnd(humanStep))
       const ramp = Math.min(1, heldFor / STRAIN_RAMP)
-      const strain = 1 + (lerpAt(POSE_STRAIN, humanPoseAt) - 1) * ramp
+      const strain =
+        1 + (lerpBetween(POSE_STRAIN, humanStep.from, humanStep.to, humanBlend) - 1) * ramp
 
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
@@ -588,7 +599,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         blend: e,
         poseFrom: humanStep.from,
         poseTo: humanStep.to,
-        poseBlend: poseBlend(humanStep, clock),
+        poseBlend: humanBlend,
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(
@@ -618,7 +629,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         }),
         poseFrom: machineStep.from,
         poseTo: machineStep.to,
-        poseBlend: poseBlend(machineStep, clock),
+        poseBlend: machineBlend,
         block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
@@ -670,7 +681,13 @@ export function Hands({ options }: { options: HandsOptions }) {
         * centre. The stage covers, so a narrow viewport sees a centred crop of
         * it: at 280px with the meeting point at 74% of stage width the whole
         * gap fell off the right edge. The gap is the subject, so it has to
-        * survive the crop at every width, which means living near the middle.
+        * survive the crop at every width, which means living near the middle
+        * HORIZONTALLY. Vertically it is lifted clear of the fold copy: the
+        * fingertips are where all the motion is, the copy is centred, and the
+        * plate behind that copy was covering exactly that band - so the hands
+        * looked frozen on the site while moving perfectly in the lab. What
+        * stayed visible was the ARMS, whose anchor pin has weight 0 and never
+        * moves by design.
         *
         * 🔴 THE MACHINE'S SLICED WRIST IS HIDDEN BY ARITHMETIC, NOT BY THE MASK.
         * Its crop puts the cut end at 0.97 of the canvas width and 0.10 of its
@@ -686,7 +703,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[-8%] left-[-32%] w-[76%]"
+        className="absolute bottom-[6%] left-[-32%] w-[76%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
@@ -697,7 +714,7 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[-26%] left-[42%] w-[72%]"
+        className="absolute top-[-40%] left-[42%] w-[72%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}

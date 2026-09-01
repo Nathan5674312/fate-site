@@ -1,0 +1,16 @@
+.dither-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/*
+ * The canvas is decoration behind the whole document. It must never eat a
+ * click, and it must never be announced — App.tsx already marks the backdrop
+ * layer aria-hidden, this is the belt to that braces in case the component is
+ * ever dropped somewhere else.
+ */
+.dither-container canvas {
+  display: block;
+  pointer-events: none;
+}
