@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
+import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 
 /**
  * The whole page. One file because it is one page — a router and a components/
@@ -162,31 +163,56 @@ export default function App() {
       </a>
 
       {/*
-        * THE FOLD, deliberately bare.
+        * THE FOLD.
         *
-        * The arched DIVINE CONSTRUC and the graph-in-a-doorway were both cut on
-        * 2026-08-30 (see docs/DESIGN.md section 7). Nothing has been invented to
-        * fill the gap: guessing at a replacement concept would just be something
-        * else to remove. What is left is the claim, the line under it and the
-        * way in - the honest minimum a fold has to carry.
+        * Creation of Adam, inverted: God's hand is the HUMAN, straining and
+        * trembling from the bottom left; Adam's is the MACHINE, limp and
+        * composed, declining to close the gap. Both are dithered to 1-bit on a
+        * canvas and deformed per finger. See docs/hands.md.
+        *
+        * The copy sits RIGHT of the diagonal rather than on top of it. The
+        * hands run bottom-left to centre, so the right half is the only place
+        * text can go without either fighting the image or forcing it to be
+        * dimmed into wallpaper. Anything centred here would sit directly on the
+        * gap, which is the one part of the picture that has to stay readable.
         */}
-      <section className="flex min-h-[72svh] flex-col justify-center px-6 pt-24 pb-16">
-        <div className="mx-auto w-full max-w-3xl">
-          {/* No brand eyebrow. "Completely remove the divine construc letters"
-              taken literally - the studio name appears only in the footer
-              credit now. One line to restore if that went too far. */}
-          <h1 className="font-display text-4xl leading-[1.08] text-sand sm:text-6xl">
-            {HERO.headline}
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <a
-              href="#waitlist"
-              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
-            >
-              {HERO.cta}
-            </a>
-            <span className="text-sm text-taupe">{HERO.ctaNote}</span>
+      <section className="relative flex min-h-[92svh] flex-col justify-center overflow-hidden px-6 pt-24 pb-16 sm:flex-row sm:items-center">
+        {/*
+          * STACKED on narrow screens, OVERLAID on wide ones. Measured at 280px
+          * the headline covered 23%% of each hand and the scrim hid the rest,
+          * so the fold lost its entire image on a phone. Below sm the hands get
+          * their own band above the copy; from sm up they sit behind it.
+          */}
+        <div className="relative mb-8 h-[38svh] w-full shrink-0 sm:absolute sm:inset-0 sm:mb-0 sm:h-auto">
+          <Hands options={DEFAULT_OPTIONS} />
+        </div>
+
+        {/*
+          * A scrim, only on the text side. The hands are bone-white at 26% ink
+          * coverage and the headline is near-white, so where they overlap the
+          * type loses its edges. Weighted to the right so it never washes out
+          * the gap on the left.
+          */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 hidden bg-gradient-to-l from-ink via-ink/70 to-transparent sm:block"
+        />
+
+        <div className="relative mx-auto w-full max-w-6xl">
+          <div className="ml-auto w-full sm:w-[54%] sm:min-w-[26rem]">
+            <h1 className="font-display text-4xl leading-[1.08] text-sand sm:text-5xl">
+              {HERO.headline}
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <a
+                href="#waitlist"
+                className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
+              >
+                {HERO.cta}
+              </a>
+              <span className="text-sm text-taupe">{HERO.ctaNote}</span>
+            </div>
           </div>
         </div>
       </section>

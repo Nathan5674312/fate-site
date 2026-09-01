@@ -333,11 +333,17 @@ export function Hands({ options }: { options: HandsOptions }) {
         * put them 556px apart and stacked vertically. The gap is the subject of
         * the picture, so it cannot be a function of the window shape.
         *
-        * min-w-[160vh] guarantees the box is at least 1.6x the viewport height,
-        * so at 16:10 its height always covers; w-full covers the width. The
-        * frame then crops in from the edges, exactly like object-fit: cover.
+        * On sm+ min-w-[160vh] guarantees the box is at least 1.6x the viewport
+        * height, so at 16:10 its height always covers and the frame crops in
+        * from the edges, exactly like object-fit: cover.
+        *
+        * BELOW sm that rule is dropped, and it has to be. Measured at 280px:
+        * covering meant the stage was 707px wide, so only 40%% of the
+        * composition was on screen - and the visible 40%% did not include the
+        * gap, which is the entire subject. Narrow screens get the whole picture
+        * fitted to the width instead, smaller but intact.
         */}
-      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[160vh] -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full -translate-x-1/2 -translate-y-1/2 sm:min-w-[160vh]">
       {/*
         * Each hand is two nested elements. The OUTER carries static placement —
         * where, which way round, how big — and the INNER is the only thing the
