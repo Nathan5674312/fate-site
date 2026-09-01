@@ -299,8 +299,19 @@ function pinOffsets(
  * more and the photograph visibly rubberises, and a stretched fresco reads as a
  * bug rather than as strain.
  */
-/** How far each pin aimlessly wanders, in source pixels, at full weight. */
-const WANDER = 2.4
+/**
+ * How far each pin aimlessly wanders, in source pixels, at full weight.
+ *
+ * 🔴 THIS IS THE "IS IT ALIVE" DIAL, NOT THE TREMOR. After five rounds of
+ * cutting the tremor the hand was measurably almost static - the ink centroid
+ * moved about 4px over three and a half seconds - and Nathan's read was simply
+ * "the hands aren't moving". Correct.
+ *
+ * The answer is not to put the tremor back. Wander is slow, aimless fBm with no
+ * shake in it: it makes the hand look like it is holding a position rather than
+ * frozen at one. Raise this, not the tremor, when it looks dead.
+ */
+const WANDER = 6.5
 
 /**
  * 🔴 WHERE EACH POSE SITS — SCATTERED, NOT ON A LINE.

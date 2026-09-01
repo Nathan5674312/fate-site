@@ -327,7 +327,7 @@ check('fingers lag the palm (follow-through is real)', () => {
    * lag and drift at once — which is how it started reading 0.279 against 0.942
    * and looked like follow-through had broken when nothing about it had.
    */
-  const wander = H.drift(t, 900 + 'index'.length * 37, 0.09) * 2.2
+  const wander = H.drift(t, 900 + 'index'.length * 37, 0.09) * H.FINGER_WANDER
   const lagged = spread(H.effort(t - cfg.lag.index))
   const instant = spread(H.effort(t))
   near(pose.fingers.index[0] - wander, lagged, 1e-9, 'index MCP should follow the lagged effort')

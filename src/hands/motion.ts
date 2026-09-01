@@ -331,6 +331,16 @@ export function tremorEnvelope(t: number): number {
 }
 
 /**
+ * How far each finger aimlessly wanders, in degrees.
+ *
+ * Exported because the follow-through test has to subtract it to isolate the
+ * lag it is actually measuring. It was a literal in both places and they went
+ * out of sync the moment this was raised - the test then failed on a number it
+ * was itself asserting.
+ */
+export const FINGER_WANDER = 5.5
+
+/**
  * Per-layer gain, so the two layers can be soloed.
  *
  * This is not a debug nicety — it is the evidence for the central claim in
@@ -366,7 +376,7 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
       tremor(t - cfg.lag[id], id.length) * 1.1 * (1 + lagged) * gain.tremor * tremorEnvelope(t)
     // Every finger wanders on its own seed. Shared noise would be a sine with
     // extra steps: all five would drift as one piece.
-    const wander = drift(t, 900 + id.length * 37, 0.09) * 2.2
+    const wander = drift(t, 900 + id.length * 37, 0.09) * FINGER_WANDER
     fingers[id] = [spread + jitter + wander, spread * 0.45, spread * 0.3]
   }
 
@@ -375,9 +385,11 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
       reach * cfg.elbowDeg +
       tremor(t) * cfg.elbowTremor * (1 + reach) * gain.tremor * tremorEnvelope(t),
     wrist: {
-      dx: Math.cos(r) * reach * cfg.reach + shake * 0.7 + drift(t, 11, 0.08) * 3.2,
-      dy: Math.sin(r) * reach * cfg.reach + shake * 0.5 + drift(t, 29, 0.07) * 2.6,
-      rot: reach * cfg.wristRot + shake * 0.35 + drift(t, 53, 0.06) * 1.4,
+      // Drift multipliers raised with WANDER, for the same reason: the slow
+      // aimless component is what keeps the hand from reading as a still.
+      dx: Math.cos(r) * reach * cfg.reach + shake * 0.7 + drift(t, 11, 0.08) * 7.5,
+      dy: Math.sin(r) * reach * cfg.reach + shake * 0.5 + drift(t, 29, 0.07) * 6,
+      rot: reach * cfg.wristRot + shake * 0.35 + drift(t, 53, 0.06) * 2.6,
     },
     fingers,
   }
@@ -582,8 +594,13 @@ export function machinePose(t: number, feint: Feint | null, cfg = MACHINE_CFG): 
  * quick in the crossing, which is what the trail can actually draw.
  */
 export const POSE_CFG = {
-  /** Seconds spent holding a pose before moving. */
-  hold: [3.5, 8] as const,
+  /**
+   * Seconds spent holding a pose before moving. Shortened from [3.5, 8]: at
+   * eight seconds of near-total stillness the page reads as a static image
+   * that occasionally twitches, rather than as something alive that occasionally
+   * settles.
+   */
+  hold: [2.2, 5] as const,
   /** Seconds to cross to the next. Short: this is the part that smears. */
   cross: [0.3, 0.5] as const,
 } as const
