@@ -150,9 +150,18 @@ export const DEFAULT_OPTIONS: HandsOptions = {
   machine: MACHINE_LOOK,
 }
 
-/* The second, further-reaching poses. Undefined until that art exists. */
-const HUMAN_POSE_B: string | undefined = undefined
-const MACHINE_POSE_B: string | undefined = undefined
+/**
+ * THE POSE SEQUENCES, in order of increasing reach.
+ *
+ * Drop registered stills into public/art/poses/ and list them here. Order is
+ * everything: the hand dissolves ALONG this list as the effort curve rises, so
+ * index 0 must be the most relaxed and the last the most extended. Reorder the
+ * array and you reorder the gesture.
+ *
+ * One entry is a still hand, which is the current state.
+ */
+const HUMAN_POSES = ['/art/human-god-hand.png']
+const MACHINE_POSES = ['/art/ai-adam-hand.png']
 
 /**
  * Pose units are hand-local, sized for a rig rather than a photograph, so the
@@ -176,6 +185,11 @@ export type MotionFrame = {
   transform: string
   blend: number
   look: DitherOptions
+  /**
+   * Position along the pose sequence. 1.4 is forty percent of the way from
+   * pose 1 to pose 2. Not an index - the fraction is the dissolve.
+   */
+  pose: number
   /** Pixel displacement per pin, image space, same order as the hand's pins. */
   offsets: { x: number; y: number }[]
 }
@@ -234,10 +248,10 @@ export function Hands({ options }: { options: HandsOptions }) {
   // hands drift out of sync with each other.
   const zero = (pins: readonly Pin[]) => pins.map(() => ({ x: 0, y: 0 }))
   const humanMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
+    transform: 'none', blend: 0, pose: 0, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
   })
   const machineMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
+    transform: 'none', blend: 0, pose: 0, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
   })
 
   useEffect(() => {
@@ -271,12 +285,15 @@ export function Hands({ options }: { options: HandsOptions }) {
           transform: rest,
           blend: 0,
           look: modulate(o.human.look, o.human.mod, still),
+          // Reduced motion holds the FIRST pose, never a half-dissolved one.
+          pose: 0,
           offsets: HUMAN_PINS.map(() => ({ x: 0, y: 0 })),
         }
         machineMotion.current = {
           transform: rest,
           blend: 0,
           look: modulate(o.machine.look, o.machine.mod, still),
+          pose: 0,
           offsets: MACHINE_PINS.map(() => ({ x: 0, y: 0 })),
         }
         return
@@ -299,6 +316,14 @@ export function Hands({ options }: { options: HandsOptions }) {
       humanMotion.current = {
         transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL),
         blend: e,
+        /*
+         * The EFFORT CURVE drives the pose sequence directly, so the surge that
+         * shakes the hand is the same surge that pushes it through the poses.
+         * At the peak of a reach it is at the last pose; on the sag it falls
+         * back through them. One gesture, not an animation playing alongside a
+         * separate one.
+         */
+        pose: e * (HUMAN_POSES.length - 1),
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain),
       }
@@ -311,6 +336,8 @@ export function Hands({ options }: { options: HandsOptions }) {
           primary: reaching,
           jitter: sway(clock),
         }),
+        // The machine only changes pose when it feints. Otherwise it holds.
+        pose: reaching * (MACHINE_POSES.length - 1),
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
     }
@@ -355,8 +382,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         * a near-touch. The gap IS the subject, so it is kept tight.
         */}
       <Hand
-        src="/art/human-god-hand.png"
-        srcB={HUMAN_POSE_B}
+        srcs={HUMAN_POSES}
         className="absolute bottom-[26%] left-[3%] w-[46%]"
         baseTransform="scaleX(-1) rotate(-18deg)"
         pixelScale={options.human.pixelScale}
@@ -365,8 +391,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         ditherOn={options.ditherOn}
       />
       <Hand
-        src="/art/ai-adam-hand.png"
-        srcB={MACHINE_POSE_B}
+        srcs={MACHINE_POSES}
         className="absolute top-[16%] left-[53%] w-[30%]"
         baseTransform="scaleX(-1) rotate(14deg)"
         pixelScale={options.machine.pixelScale}

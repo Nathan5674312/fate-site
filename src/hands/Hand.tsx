@@ -6,10 +6,12 @@
  * ~115k pixels per frame instead of a hero-sized region — and the chunky
  * upscaled dots are the intended look rather than a compromise.
  *
- * `poseB` is the second, further-reaching pose. When it is supplied, `blend`
- * dissolves toward it PER PIXEL (see dither.ts), so the fingers appear to
- * extend without the image ever being cut apart or warped. When it is absent
- * the hand simply holds pose A, which is the state until that art exists.
+ * POSES. `srcs` is a sequence of registered stills, and `motion.pose` is a
+ * position along it - 1.4 meaning forty percent of the way from the second to
+ * the third. Only the two neighbouring poses are ever mixed, and the mix is
+ * PER PIXEL (see dither.ts), so no in-between frame is ever invented. Every
+ * frame on screen is made of real pixels from real poses, which is exactly why
+ * this works where video interpolation of hands does not.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -18,8 +20,16 @@ import { buildWeights, displace, makeField, type Field, type Pin } from './warp'
 import type { MotionFrame } from './Hands'
 
 export type HandProps = {
-  src: string
-  srcB?: string
+  /**
+   * The pose sequence, in order. One entry is a still hand; more than one and
+   * the hand dissolves along the sequence as `pose` moves.
+   *
+   * 🔴 EVERY POSE MUST BE REGISTERED - same canvas size, same arm in the same
+   * place, only the fingers differing. The dissolve does not warp anything into
+   * position; it swaps pixels. Two poses framed differently produce a jump cut
+   * rather than a gesture, and no amount of dithering hides that.
+   */
+  srcs: readonly string[]
   /** Static placement: where in the frame, which way round, how big. */
   className: string
   /** Wrapper transform for the mirror and any base rotation. */
@@ -41,11 +51,11 @@ export type HandProps = {
   ditherOn: boolean
 }
 
-export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, motion, ditherOn }: HandProps) {
+export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion, ditherOn }: HandProps) {
   const move = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
-  const frames = useRef<{ a: ImageData; b: ImageData | null; out: ImageData } | null>(null)
+  const frames = useRef<{ poses: ImageData[]; out: ImageData } | null>(null)
   // Built once per image: rest positions never move, and this is the costly
   // part (a distance per pixel per pin).
   const warp = useRef<{ weights: Float32Array; field: Field } | null>(null)
@@ -63,14 +73,20 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, mo
         i.src = u
       })
 
-    Promise.all([load(src), srcB ? load(srcB) : Promise.resolve(null)]).then(([a, b]) => {
+    Promise.all(srcs.map(load)).then((imgs) => {
       if (dead) return
-      const ia = toImageData(a, pixelScale)
-      frames.current = {
-        a: ia,
-        b: b ? toImageData(b, pixelScale) : null,
-        out: new ImageData(ia.width, ia.height),
+      const poses = imgs.map((i) => toImageData(i, pixelScale))
+      const ia = poses[0]
+      // A pose that decoded at a different size cannot be dissolved against the
+      // others - it would sample from the wrong place entirely. Better to drop
+      // it loudly than to render garbage.
+      const usable = poses.filter((p) => p.width === ia.width && p.height === ia.height)
+      if (usable.length !== poses.length) {
+        console.warn(
+          `[hands] ${poses.length - usable.length} pose(s) dropped: every pose must be the same size as ${srcs[0]} (${ia.width}x${ia.height})`,
+        )
       }
+      frames.current = { poses: usable, out: new ImageData(ia.width, ia.height) }
       warp.current = {
         weights: buildWeights(pins, ia.width, ia.height),
         field: makeField(ia.width, ia.height),
@@ -78,7 +94,7 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, mo
       setSize({ w: ia.width, h: ia.height })
     })
     return () => { dead = true }
-  }, [src, srcB, pixelScale, pins])
+  }, [srcs, pixelScale, pins])
 
   useEffect(() => {
     if (!size) return
@@ -104,7 +120,19 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, mo
       // repaint of every pixel.
       const L = m.look
       const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}`
-      const blend = f.b ? m.blend : 0
+
+      /*
+       * Where we are along the pose sequence. `pose` is a position, not an
+       * index: 1.4 means 40 percent of the way from pose 1 to pose 2. Only the
+       * two NEIGHBOURING poses are ever mixed, so the dissolve stays a two-way
+       * choice per pixel however many poses exist.
+       */
+      const last = f.poses.length - 1
+      const at = Math.min(Math.max(m.pose ?? 0, 0), last)
+      const i = Math.min(Math.floor(at), Math.max(0, last - 1))
+      const a = f.poses[i]
+      const b = last > 0 ? f.poses[i + 1] : null
+      const blend = last > 0 ? at - i : 0
       // With a warp running the geometry changes every frame, so the skip only
       // applies when nothing is deforming.
       const warping = m.offsets.some((v: { x: number; y: number }) => v.x !== 0 || v.y !== 0)
@@ -122,7 +150,7 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, mo
 
       if (!onRef.current) {
         ctx.clearRect(0, 0, size.w, size.h)
-        ctx.putImageData(blend > 0.5 && f.b ? f.b : f.a, 0, 0)
+        ctx.putImageData(blend > 0.5 && b ? b : a, 0, 0)
         return
       }
       let field: Field | null = null
@@ -130,7 +158,7 @@ export function Hand({ src, srcB, className, baseTransform, pixelScale, pins, mo
         displace(warp.current.weights, m.offsets, size.w, size.h, warp.current.field)
         field = warp.current.field
       }
-      dither(f.a, f.b, f.out, size.w, { ...L, blend }, field)
+      dither(a, b, f.out, size.w, { ...L, blend }, field)
       ctx.putImageData(f.out, 0, 0)
     }
 
