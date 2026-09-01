@@ -9,7 +9,13 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/hands.test.mjs"
+    "test": "node tests/hands.test.mjs",
+    "db:create": "wrangler d1 create fate-waitlist",
+    "db:init": "wrangler d1 execute fate-waitlist --remote --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute fate-waitlist --local --file=./schema.sql",
+    "db:list": "wrangler d1 execute fate-waitlist --remote --command=\"SELECT email, created_at FROM waitlist ORDER BY created_at DESC LIMIT 50\"",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=fate-site",
+    "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=fate-site --branch=preview"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
