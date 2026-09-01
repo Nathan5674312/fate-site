@@ -26,10 +26,14 @@ import { Hand } from './Hand'
 import { modulate, type DitherOptions, type LookMod } from './dither'
 import { HUMAN_PINS, MACHINE_PINS, type Pin } from './warp'
 import {
+  type Degrade,
   type Feint,
   type Gain,
   type Pose,
   FULL,
+  degradeBlock,
+  degradeEnd,
+  nextDegrade,
   effort,
   feintAmount,
   sway,
@@ -70,6 +74,8 @@ export type HandsOptions = {
   gain: Gain
   reduced: boolean
   feintNonce: number
+  /** Bumped by the lab to trigger a degradation immediately. */
+  degradeNonce: number
   ditherOn: boolean
   human: HandLook
   machine: HandLook
@@ -129,7 +135,7 @@ export const MACHINE_LOOK: HandLook = {
     threshold: 0.15,
     contrast: 3.46,
     gamma: 1,
-    pivot: 0.49,
+    pivot: 0.57,
     ink: [244, 244, 245],
   },
   pixelScale: 0.8,
@@ -162,6 +168,7 @@ export const DEFAULT_OPTIONS: HandsOptions = {
   gain: FULL,
   reduced: false,
   feintNonce: 0,
+  degradeNonce: 0,
   ditherOn: true,
   human: HUMAN_LOOK,
   machine: MACHINE_LOOK,
@@ -224,6 +231,8 @@ export type MotionFrame = {
   pose: number
   /** Pixel displacement per pin, image space, same order as the hand's pins. */
   offsets: { x: number; y: number }[]
+  /** Dot size this frame. Driven by the shared degradation event. */
+  block: number
 }
 
 const DEG = Math.PI / 180
@@ -286,10 +295,10 @@ export function Hands({ options }: { options: HandsOptions }) {
   // hands drift out of sync with each other.
   const zero = (pins: readonly Pin[]) => pins.map(() => ({ x: 0, y: 0 }))
   const humanMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, pose: 0, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
+    transform: 'none', blend: 0, pose: 0, block: 1, look: HUMAN_LOOK.look, offsets: zero(HUMAN_PINS),
   })
   const machineMotion = useRef<MotionFrame>({
-    transform: 'none', blend: 0, pose: 0, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
+    transform: 'none', blend: 0, pose: 0, block: 1, look: MACHINE_LOOK.look, offsets: zero(MACHINE_PINS),
   })
 
   useEffect(() => {
@@ -299,6 +308,11 @@ export function Hands({ options }: { options: HandsOptions }) {
     let lastNonce = opts.current.feintNonce
     const rand = rng(0x5eed)
     let feint: Feint = { ...nextFeint(rand, 0), start: 2.5 }
+    // ONE event for both hands. The PICTURE degrades, not one hand in it -
+    // desynchronised it would read as two separate glitches rather than as the
+    // signal struggling.
+    let degrade: Degrade = nextDegrade(rand, 0)
+    let lastDegradeNonce = opts.current.degradeNonce
 
     // A live condition, not a one-shot read: someone who turns reduced motion
     // on should not have to reload to stop a hand shaking at them.
@@ -325,6 +339,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           look: modulate(o.human.look, o.human.mod, still),
           // Reduced motion holds the FIRST pose, never a half-dissolved one.
           pose: 0,
+          block: 1,
           offsets: HUMAN_PINS.map(() => ({ x: 0, y: 0 })),
         }
         machineMotion.current = {
@@ -332,6 +347,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           blend: 0,
           look: modulate(o.machine.look, o.machine.mod, still),
           pose: 0,
+          block: 1,
           offsets: MACHINE_PINS.map(() => ({ x: 0, y: 0 })),
         }
         return
@@ -345,6 +361,15 @@ export function Hands({ options }: { options: HandsOptions }) {
       } else if (clock > feintEnd(feint)) {
         feint = nextFeint(rand, clock)
       }
+
+      if (o.degradeNonce !== lastDegradeNonce) {
+        lastDegradeNonce = o.degradeNonce
+        degrade = { start: clock + 0.05 }
+      } else if (clock > degradeEnd(degrade)) {
+        degrade = nextDegrade(rand, clock)
+      }
+      // Shared by both hands, so it has to be resolved before either is built.
+      const block = degradeBlock(degrade, clock)
 
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
@@ -362,6 +387,7 @@ export function Hands({ options }: { options: HandsOptions }) {
          * separate one.
          */
         pose: e * (HUMAN_POSES.length - 1),
+        block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain),
       }
@@ -376,6 +402,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         }),
         // The machine only changes pose when it feints. Otherwise it holds.
         pose: reaching * (MACHINE_POSES.length - 1),
+        block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
     }

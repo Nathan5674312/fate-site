@@ -72,6 +72,18 @@ export type DitherOptions = {
   ink?: readonly [number, number, number]
   /** Alpha below this in the SOURCE stays fully transparent in the output. */
   alphaCutoff?: number
+  /**
+   * Dot size, in output pixels. 1 is the native halftone; higher values make
+   * every NxN square share one source sample and one threshold, so the image
+   * comes out in chunks.
+   *
+   * 🔴 THIS EXISTS INSTEAD OF ANIMATING `pixelScale`. pixelScale sets the canvas
+   * RESOLUTION, so changing it means re-decoding every pose and rebuilding the
+   * per-pixel warp weights - hundreds of thousands of distance calculations -
+   * and resizing the canvas element mid-animation. Quantising coordinates here
+   * is visually the same thing and costs two integer divides per pixel.
+   */
+  block?: number
 }
 
 const DEFAULTS = {
@@ -82,6 +94,7 @@ const DEFAULTS = {
   blend: 0,
   ink: [244, 244, 245] as const,
   alphaCutoff: 24,
+  block: 1,
 }
 
 function luma(d: Uint8ClampedArray, i: number): number {
@@ -115,10 +128,18 @@ export function dither(
   const n = dst.length
   const height = (n >> 2) / width
 
+  const blk = Math.max(1, Math.round(o.block))
+
   for (let i = 0; i < n; i += 4) {
     const p = i >> 2
-    const px = p % width
-    const py = (p / width) | 0
+    const rawX = p % width
+    const rawY = (p / width) | 0
+    // Every pixel in a block resolves to the block's top-left corner, so the
+    // whole square shares one threshold and one source sample and comes out as
+    // a single flat dot.
+    const px = blk > 1 ? ((rawX / blk) | 0) * blk : rawX
+    const py = blk > 1 ? ((rawY / blk) | 0) * blk : rawY
+    const bp = blk > 1 ? py * width + px : p
     // One threshold value serves twice: it picks WHICH image this pixel comes
     // from, and then whether that pixel is ink. Reusing it is what keeps the
     // dissolve and the dither visually coherent instead of two competing noises.
@@ -133,10 +154,10 @@ export function dither(
      * hole. Nearest-neighbour on purpose: the output is one bit, so the cost of
      * bilinear sampling would buy nothing.
      */
-    let si = i
+    let si = blk > 1 ? bp << 2 : i
     if (warp) {
-      const sx = (px - warp.dx[p] + 0.5) | 0
-      const sy = (py - warp.dy[p] + 0.5) | 0
+      const sx = (px - warp.dx[bp] + 0.5) | 0
+      const sy = (py - warp.dy[bp] + 0.5) | 0
       if (sx < 0 || sy < 0 || sx >= width || sy >= height) {
         dst[i + 3] = 0
         continue

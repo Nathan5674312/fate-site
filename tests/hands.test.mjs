@@ -147,7 +147,7 @@ check('the machine dangle never repeats', () => {
   assertNeverRepeats('sway', (t) => H.sway(t))
 })
 
-check('effort surges at ~0.85Hz', () => {
+check('effort surges at the configured rate', () => {
   const secs = 40
   const rate = 500
   let rises = 0
@@ -342,6 +342,46 @@ check('a feint straightens the chosen finger and no other', () => {
   const idle = H.machinePose(1.2, null)
   assert(held.fingers.index[0] < idle.fingers.index[0] - 20, 'index should straighten out')
   near(held.fingers.middle[0], idle.fingers.middle[0], 1e-9, 'middle must be untouched')
+})
+
+/* -------------------------------------------------- the degradation --- */
+
+check('degradation is rarer than once a minute', () => {
+  // Nathan asked for less than once a minute, and that IS the effect: something
+  // every few seconds is a loop, something occasional is an event. Nobody would
+  // catch a regression here by watching - it would just quietly become a tic.
+  const rand = H.rng(2026)
+  let t = 0
+  for (let i = 0; i < 300; i++) {
+    const d = H.nextDegrade(rand, t)
+    assert(d.start - t >= 60, `gap ${i} was only ${(d.start - t).toFixed(1)}s`)
+    inRange(d.start - t, H.DEGRADE_CFG.gap[0], H.DEGRADE_CFG.gap[1], 'gap between degradations')
+    t = H.degradeEnd(d)
+  }
+})
+
+check('degradation steps fine to brutal and back to fine', () => {
+  const d = { start: 10 }
+  assert(H.degradeBlock(d, 9.9) === 1, 'must be fine before it starts')
+  assert(H.degradeBlock(d, H.degradeEnd(d) + 0.01) === 1, 'must return to fine')
+  assert(H.degradeBlock(null, 500) === 1, 'no event means fine')
+
+  const seen = []
+  const rate = 200
+  for (let i = 0; i <= H.degradeDuration() * rate; i++) {
+    const b = H.degradeBlock(d, 10 + i / rate)
+    if (seen[seen.length - 1] !== b) seen.push(b)
+  }
+  assert(Math.max(...seen) === 5, `should reach the coarsest level, peaked at ${Math.max(...seen)}`)
+  // Monotonic down then monotonic up: no flicker between levels.
+  const peak = seen.indexOf(5)
+  for (let i = 1; i <= peak; i++) assert(seen[i] > seen[i - 1], `not monotonic down at ${i}: ${seen}`)
+  for (let i = peak + 1; i < seen.length; i++) assert(seen[i] < seen[i - 1], `not monotonic up at ${i}: ${seen}`)
+})
+
+check('a degradation is over in a couple of seconds', () => {
+  // Long enough to read, short enough not to become the look of the page.
+  inRange(H.degradeDuration(), 1.5, 4, 'degradation duration (seconds)')
 })
 
 /* ---------------------------------------------------------- at rest --- */

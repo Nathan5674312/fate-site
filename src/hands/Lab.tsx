@@ -161,6 +161,9 @@ export default function Lab() {
         <button onClick={() => set({ feintNonce: o.feintNonce + 1 })} className={chip(false)}>
           Feint
         </button>
+        <button onClick={() => set({ degradeNonce: o.degradeNonce + 1 })} className={chip(false)}>
+          Degrade
+        </button>
         <button
           onClick={() => set({ gain: { ...o.gain, effort: o.gain.effort > 0 ? 0 : 1 } })}
           className={chip(o.gain.effort > 0)}

@@ -139,7 +139,7 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
       // too, but it is quantised so imperceptible drift does not trigger a
       // repaint of every pixel.
       const L = m.look
-      const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}`
+      const lookKey = `${L.threshold?.toFixed(3)}|${L.contrast?.toFixed(3)}|${L.pivot}|${L.gamma}|${L.ink}|${m.block}`
 
       /*
        * Where we are along the pose sequence. `pose` is a position, not an
@@ -181,7 +181,7 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
         displace(warp.current.weights, m.offsets, size.w, size.h, warp.current.field)
         field = warp.current.field
       }
-      dither(a, b, f.out, size.w, { ...L, blend }, field)
+      dither(a, b, f.out, size.w, { ...L, blend, block: m.block }, field)
 
       const off = stage.current
       const t = trailRef.current

@@ -402,6 +402,61 @@ export function machinePose(t: number, feint: Feint | null, cfg = MACHINE_CFG): 
   }
 }
 
+/* --------------------------------------------------- the degradation --- */
+
+/**
+ * Every so often the picture loses resolution — fine, medium, coarse, brutal —
+ * and then locks back in. Nathan's idea, and the read is signal degradation:
+ * the image is being transmitted, not painted, and occasionally the link
+ * struggles.
+ *
+ * RARE ON PURPOSE. He asked for less than once a minute, and that is the whole
+ * effect: something that happens every few seconds is a loop, something that
+ * happens once in a while is an event. A viewer should be able to miss it.
+ */
+export const DEGRADE_CFG = {
+  /** Seconds between events. Comfortably over a minute at the low end. */
+  gap: [70, 165] as const,
+  /**
+   * Block size and hold, in order. Down through the levels and back — stepping
+   * out rather than snapping, because a snap back to fine reads as a dropped
+   * frame while a step reads as recovery.
+   */
+  steps: [
+    { block: 2, dur: 0.55 },
+    { block: 3, dur: 0.5 },
+    { block: 5, dur: 0.75 },
+    { block: 3, dur: 0.26 },
+    { block: 2, dur: 0.2 },
+  ] as const,
+} as const
+
+export type Degrade = { start: number }
+
+export function nextDegrade(rand: () => number, after: number): Degrade {
+  return { start: after + DEGRADE_CFG.gap[0] + rand() * (DEGRADE_CFG.gap[1] - DEGRADE_CFG.gap[0]) }
+}
+
+export function degradeDuration(): number {
+  return DEGRADE_CFG.steps.reduce((a, s) => a + s.dur, 0)
+}
+
+export function degradeEnd(d: Degrade): number {
+  return d.start + degradeDuration()
+}
+
+/** Block size at time t. 1 — fine — whenever no event is running. */
+export function degradeBlock(d: Degrade | null, t: number): number {
+  if (!d) return 1
+  let e = t - d.start
+  if (e <= 0) return 1
+  for (const s of DEGRADE_CFG.steps) {
+    if (e < s.dur) return s.block
+    e -= s.dur
+  }
+  return 1
+}
+
 /* ------------------------------------------------------------- at rest --- */
 
 /**
