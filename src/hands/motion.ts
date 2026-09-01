@@ -198,6 +198,31 @@ export function tremor(t: number, phase = 0): number {
 }
 
 /**
+ * How strong the tremor is RIGHT NOW, roughly 0.25 to 1.4.
+ *
+ * Nathan: the tremor should fluctuate. It should — a constant tremor is a motor,
+ * and a real hand at its limit wavers: mostly holding, then losing it for a few
+ * seconds, then gathering again. Constant amplitude is the giveaway that a
+ * shake was generated rather than fought.
+ *
+ * Deliberately biased LOW. Raising the product to a power above 1 means the
+ * envelope spends most of its time near the bottom of its range and only
+ * occasionally peaks, so the calm is the default and the shaking is an event.
+ * A symmetric envelope would just read as a slow throb.
+ *
+ * The two rates are ~25s and ~40s and separated by PHI, so the waxing and waning
+ * never lands on a pattern — same rule as every other oscillator in this file.
+ */
+const TREM1 = HUMAN_CFG.effortHz * PHI * 0.31
+const TREM2 = TREM1 * PHI
+
+export function tremorEnvelope(t: number): number {
+  const a = 0.5 + 0.5 * Math.sin(TAU * TREM1 * t)
+  const b = 0.5 + 0.5 * Math.sin(TAU * TREM2 * t + 2.2)
+  return 0.25 + 1.15 * Math.pow(a * 0.65 + b * 0.35, 1.6)
+}
+
+/**
  * Per-layer gain, so the two layers can be soloed.
  *
  * This is not a debug nicety — it is the evidence for the central claim in
@@ -221,7 +246,7 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
   const reach = effort(t, cfg) * gain.effort
   // Amplitude scales with force, so it is at its largest exactly when the hand
   // is at its limit. This is the doubling: 1 + reach spans 1x to 2x.
-  const shake = tremor(t) * cfg.tremorAmp * (1 + reach) * gain.tremor
+  const shake = tremor(t) * cfg.tremorAmp * (1 + reach) * gain.tremor * tremorEnvelope(t)
   const r = (axis * Math.PI) / 180
 
   const fingers = {} as Record<FingerId, FingerAngles>
@@ -229,12 +254,15 @@ export function humanPose(t: number, axis = -38, cfg = HUMAN_CFG, gain = FULL): 
     const lagged = effort(t - cfg.lag[id], cfg) * gain.effort
     // Straightens toward hyperextension at peak, curls back on the sag.
     const spread = -cfg.extend[id] * lagged + cfg.curl[id] * (1 - lagged)
-    const jitter = tremor(t - cfg.lag[id], id.length) * 1.1 * (1 + lagged) * gain.tremor
+    const jitter =
+      tremor(t - cfg.lag[id], id.length) * 1.1 * (1 + lagged) * gain.tremor * tremorEnvelope(t)
     fingers[id] = [spread + jitter, spread * 0.45, spread * 0.3]
   }
 
   return {
-    elbow: reach * cfg.elbowDeg + tremor(t) * cfg.elbowTremor * (1 + reach) * gain.tremor,
+    elbow:
+      reach * cfg.elbowDeg +
+      tremor(t) * cfg.elbowTremor * (1 + reach) * gain.tremor * tremorEnvelope(t),
     wrist: {
       dx: Math.cos(r) * reach * cfg.reach + shake * 0.7,
       dy: Math.sin(r) * reach * cfg.reach + shake * 0.5,

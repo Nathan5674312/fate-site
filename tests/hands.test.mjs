@@ -344,6 +344,36 @@ check('a feint straightens the chosen finger and no other', () => {
   near(held.fingers.middle[0], idle.fingers.middle[0], 1e-9, 'middle must be untouched')
 })
 
+check('the tremor waxes and wanes', () => {
+  // A constant tremor is a motor. A real hand at its limit mostly holds and
+  // occasionally loses it, so the envelope has to move - and move slowly enough
+  // to read as fatigue rather than as another oscillation.
+  const rate = 20
+  const vals = []
+  for (let i = 0; i < 400 * rate; i++) vals.push(H.tremorEnvelope(i / rate))
+  const lo = Math.min(...vals)
+  const hi = Math.max(...vals)
+  inRange(lo, 0.2, 0.45, 'quietest the tremor gets')
+  inRange(hi, 1.1, 1.5, 'strongest the tremor gets')
+  assert(hi / lo > 3, `envelope should swing at least 3x, got ${(hi / lo).toFixed(2)}`)
+})
+
+check('the tremor envelope is biased toward calm', () => {
+  // Calm is the default state and shaking is the event. A symmetric envelope
+  // would read as a slow throb instead.
+  const rate = 20
+  let below = 0
+  let n = 0
+  for (let i = 0; i < 600 * rate; i++, n++) {
+    if (H.tremorEnvelope(i / rate) < 0.8) below++
+  }
+  assert(below / n > 0.5, `should sit calm most of the time, was ${(below / n * 100).toFixed(0)}%`)
+})
+
+check('the tremor envelope never repeats', () => {
+  assertNeverRepeats('tremor envelope', (t) => H.tremorEnvelope(t))
+})
+
 /* -------------------------------------------------- the degradation --- */
 
 check('degradation is rarer than once a minute', () => {

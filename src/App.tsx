@@ -166,53 +166,36 @@ export default function App() {
         * THE FOLD.
         *
         * Creation of Adam, inverted: God's hand is the HUMAN, straining and
-        * trembling from the bottom left; Adam's is the MACHINE, limp and
-        * composed, declining to close the gap. Both are dithered to 1-bit on a
-        * canvas and deformed per finger. See docs/hands.md.
+        * trembling in from the left; Adam's is the MACHINE, limp and composed,
+        * declining to close the gap. Both are photographs, dithered to 1-bit on
+        * a canvas and deformed per finger. See docs/hands.md.
         *
-        * The copy sits RIGHT of the diagonal rather than on top of it. The
-        * hands run bottom-left to centre, so the right half is the only place
-        * text can go without either fighting the image or forcing it to be
-        * dimmed into wallpaper. Anything centred here would sit directly on the
-        * gap, which is the one part of the picture that has to stay readable.
+        * 🔴 COPY SITS BELOW THE ART, NOT ON IT, and that is measured rather than
+        * taste. With the text beside the hands, 100%% of the machine hand's ink
+        * fell inside the headline column at 1440x900 — half the concept buried
+        * under type and dimmed by a scrim to keep the type readable. The hands
+        * are a wide diagonal; anything set beside them fights them. Stacking
+        * also deletes the scrim entirely, so the art stops being dimmed at all,
+        * and collapses two layouts into one.
         */}
-      <section className="relative flex min-h-[92svh] flex-col justify-center overflow-hidden px-6 pt-24 pb-16 sm:flex-row sm:items-center">
-        {/*
-          * STACKED on narrow screens, OVERLAID on wide ones. Measured at 280px
-          * the headline covered 23%% of each hand and the scrim hid the rest,
-          * so the fold lost its entire image on a phone. Below sm the hands get
-          * their own band above the copy; from sm up they sit behind it.
-          */}
-        <div className="relative mb-8 h-[38svh] w-full shrink-0 sm:absolute sm:inset-0 sm:mb-0 sm:h-auto">
+      <section className="flex min-h-[94svh] flex-col justify-center gap-6 px-6 pt-16 pb-12 sm:gap-8">
+        <div className="relative h-[34svh] w-full shrink-0 sm:h-[40svh]">
           <Hands options={DEFAULT_OPTIONS} />
         </div>
 
-        {/*
-          * A scrim, only on the text side. The hands are bone-white at 26% ink
-          * coverage and the headline is near-white, so where they overlap the
-          * type loses its edges. Weighted to the right so it never washes out
-          * the gap on the left.
-          */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 hidden bg-gradient-to-l from-ink via-ink/70 to-transparent sm:block"
-        />
-
-        <div className="relative mx-auto w-full max-w-6xl">
-          <div className="ml-auto w-full sm:w-[54%] sm:min-w-[26rem]">
-            <h1 className="font-display text-4xl leading-[1.08] text-sand sm:text-5xl">
-              {HERO.headline}
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <a
-                href="#waitlist"
-                className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
-              >
-                {HERO.cta}
-              </a>
-              <span className="text-sm text-taupe">{HERO.ctaNote}</span>
-            </div>
+        <div className="mx-auto w-full max-w-3xl">
+          <h1 className="font-display text-4xl leading-[1.05] text-sand sm:text-6xl">
+            {HERO.headline}
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
+          <div className="mt-9 flex flex-wrap items-center gap-4">
+            <a
+              href="#waitlist"
+              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
+            >
+              {HERO.cta}
+            </a>
+            <span className="text-sm text-taupe">{HERO.ctaNote}</span>
           </div>
         </div>
       </section>

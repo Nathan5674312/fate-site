@@ -38,6 +38,7 @@ import {
   feintAmount,
   sway,
   tremor,
+  tremorEnvelope,
   feintEnd,
   humanPose,
   machinePose,
@@ -260,12 +261,14 @@ function pinOffsets(
   reach: number,
   shake: number,
   gain: Gain,
+  /** Waxing and waning tremor strength. 1 for the machine, which does not waver. */
+  env = 1,
 ): { x: number; y: number }[] {
   return pins.map((pin, i) => {
     if (pin.weight === 0) return { x: 0, y: 0 }
     const e = effort(t - pin.lag) * gain.effort
     const tr = tremor(t - pin.lag, i * 1.7) * gain.tremor
-    const travel = pin.weight * (reach * e + shake * pin.shake * tr)
+    const travel = pin.weight * (reach * e + shake * pin.shake * tr * env)
     const a = pin.dir * DEG
     return { x: Math.cos(a) * travel, y: Math.sin(a) * travel }
   })
@@ -395,7 +398,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         pose: e * (HUMAN_POSES.length - 1),
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
-        offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain),
+        offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain, tremorEnvelope(clock)),
       }
 
       const reaching = feintAmount(feint, clock)
