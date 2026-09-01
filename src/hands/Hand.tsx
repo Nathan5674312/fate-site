@@ -43,6 +43,12 @@ export type HandProps = {
   /** Deformation pins for this hand, in image space. */
   pins: readonly Pin[]
   /**
+   * Persistence of the previous frames, 0..1. 0 replaces the image outright;
+   * higher values leave a decaying after-image, so a pose change smears into
+   * the next one instead of cutting. Nathan's word for it was glowstick.
+   */
+  trail: number
+  /**
    * Live values, read every frame without re-rendering React. The LOOK arrives
    * here too, already modulated by the animation, so the treatment and the
    * movement can never disagree about what moment it is.
@@ -51,7 +57,7 @@ export type HandProps = {
   ditherOn: boolean
 }
 
-export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion, ditherOn }: HandProps) {
+export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, motion, ditherOn }: HandProps) {
   const move = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -59,6 +65,16 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion,
   // Built once per image: rest positions never move, and this is the costly
   // part (a distance per pixel per pin).
   const warp = useRef<{ weights: Float32Array; field: Field } | null>(null)
+  /*
+   * The freshly dithered frame is staged here before being composited onto the
+   * visible canvas. putImageData writes pixels RAW - it ignores globalAlpha and
+   * globalCompositeOperation entirely - so a trail is impossible while drawing
+   * that way. Going through an offscreen canvas and drawImage is what makes the
+   * fade available at all.
+   */
+  const stage = useRef<HTMLCanvasElement | null>(null)
+  const trailRef = useRef(trail)
+  trailRef.current = trail
   const onRef = useRef(ditherOn)
   onRef.current = ditherOn
 
@@ -87,6 +103,10 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion,
         )
       }
       frames.current = { poses: usable, out: new ImageData(ia.width, ia.height) }
+      const off = document.createElement('canvas')
+      off.width = ia.width
+      off.height = ia.height
+      stage.current = off
       warp.current = {
         weights: buildWeights(pins, ia.width, ia.height),
         field: makeField(ia.width, ia.height),
@@ -134,10 +154,13 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion,
       const b = last > 0 ? f.poses[i + 1] : null
       const blend = last > 0 ? at - i : 0
       // With a warp running the geometry changes every frame, so the skip only
-      // applies when nothing is deforming.
+      // applies when nothing is deforming. A trail also has to redraw every
+      // frame regardless - the decay IS the animation, and skipping a frame
+      // freezes the after-image instead of fading it.
       const warping = m.offsets.some((v: { x: number; y: number }) => v.x !== 0 || v.y !== 0)
       if (
         !warping &&
+        trailRef.current <= 0 &&
         Math.abs(blend - lastBlend) < 0.008 &&
         lookKey === lastLook &&
         lastOn === onRef.current
@@ -159,7 +182,31 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, motion,
         field = warp.current.field
       }
       dither(a, b, f.out, size.w, { ...L, blend }, field)
-      ctx.putImageData(f.out, 0, 0)
+
+      const off = stage.current
+      const t = trailRef.current
+      if (!off || t <= 0) {
+        ctx.clearRect(0, 0, size.w, size.h)
+        ctx.putImageData(f.out, 0, 0)
+        return
+      }
+
+      off.getContext('2d')!.putImageData(f.out, 0, 0)
+      /*
+       * Decay what is already there by subtracting alpha, rather than painting
+       * a translucent black over it. `destination-out` removes alpha uniformly,
+       * which keeps the background TRANSPARENT - painting black would restore
+       * the rectangle the cut-out exists to get rid of.
+       *
+       * Each frame keeps (1 - fade) of the last, so brightness falls off
+       * exponentially and the tail length is roughly 1/fade frames.
+       */
+      const fade = 1 / (1 + t * 55)
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.fillStyle = `rgba(0,0,0,${fade})`
+      ctx.fillRect(0, 0, size.w, size.h)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.drawImage(off, 0, 0)
     }
 
     raf = requestAnimationFrame(frame)

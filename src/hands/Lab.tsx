@@ -167,12 +167,19 @@ export default function Lab() {
         >
           Effort
         </button>
-        <button
-          onClick={() => set({ gain: { ...o.gain, tremor: o.gain.tremor > 0 ? 0 : 1 } })}
-          className={chip(o.gain.tremor > 0)}
-        >
-          Tremor
-        </button>
+        <label className="flex items-center gap-1.5 text-[11px] text-white/70">
+          tremor
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.05}
+            value={o.gain.tremor}
+            onChange={(e) => set({ gain: { ...o.gain, tremor: Number(e.target.value) } })}
+            className="w-20 accent-white"
+          />
+          <span className="w-8 tabular-nums text-white">{o.gain.tremor.toFixed(2)}</span>
+        </label>
         <button onClick={() => set({ reduced: !o.reduced })} className={chip(o.reduced)}>
           Reduced
         </button>
@@ -215,6 +222,19 @@ export default function Lab() {
         {num('ink level', 'threshold', 0.1, 0.9, 0.5)}
 
         <span className="mx-1 h-4 w-px bg-white/20" />
+        <label className="flex items-center gap-1.5 text-[11px] text-white/70">
+          trail
+          <input
+            type="range"
+            min={0}
+            max={0.95}
+            step={0.01}
+            value={current.trail}
+            onChange={(e) => setHand({ trail: Number(e.target.value) })}
+            className="w-20 accent-white"
+          />
+          <span className="w-8 tabular-nums text-white">{current.trail.toFixed(2)}</span>
+        </label>
         {mod('ink w/ motion', 'pivotByDrive', -0.15, 0.15)}
         {mod('boil', 'pivotByJitter', 0, 0.03)}
 

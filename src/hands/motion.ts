@@ -94,13 +94,16 @@ export const HUMAN_CFG = {
   /**
    * Surges per second. Slow enough to read as effort rather than vibration.
    *
-   * Halved from 0.85 once the four poses were wired: this rate drives the POSE
-   * SEQUENCE as well as the shake, so at 0.85 the hand ran through all four
-   * poses and back every 1.2 seconds, which reads as frantic rather than
-   * straining. The tremor underneath is untouched - it is the fast layer and it
-   * should stay fast.
+   * 0.85 -> 0.42 -> 0.21 across two rounds of Nathan watching it. This rate
+   * drives the POSE SEQUENCE as well as the shake, so it sets how often the
+   * hand walks through all four poses and back: about five seconds a cycle now,
+   * against 1.2 seconds at the original rate.
+   *
+   * The tremor FREQUENCY underneath is untouched at 9-11Hz. Slowing a tremor
+   * does not calm it, it turns it into a wobble - what needed to come down was
+   * the amplitude, which is a separate set of numbers.
    */
-  effortHz: 0.42,
+  effortHz: 0.21,
   /** Fraction of the cycle spent pushing out. Fast, because effort is fast. */
   push: 0.28,
   /** Fraction spent held at full extension, where the tremor doubles. */
@@ -115,9 +118,9 @@ export const HUMAN_CFG = {
   elbowDeg: -5.2,
   /** Tremor at the elbow. Small in degrees, large by the time it reaches the
    *  fingertips — which is exactly how a real arm shakes. */
-  elbowTremor: 0.6,
+  elbowTremor: 0.2,
   /** Baseline tremor displacement. Doubled at the hold by the effort term. */
-  tremorAmp: 1.5,
+  tremorAmp: 0.5,
   /** Wrist rotation added at full effort. */
   wristRot: -5,
   /**

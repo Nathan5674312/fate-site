@@ -57,6 +57,11 @@ export type HandLook = {
   pixelScale: number
   /** How the treatment moves with the animation. See dither.ts. */
   mod: LookMod
+  /**
+   * After-image persistence, 0..1. The pose dissolve is instant at 0; higher
+   * values leave a decaying ghost so a change of pose smears into the next.
+   */
+  trail: number
 }
 
 export type HandsOptions = {
@@ -88,6 +93,13 @@ export const HUMAN_LOOK: HandLook = {
   },
   pixelScale: 0.8,
   /*
+   * The glowstick. Long enough that a pose change reads as one motion smearing
+   * into the next rather than four stills being cut between - which is what the
+   * dissolve alone still looked like, because the poses differ enough that even
+   * a per-pixel mix arrives suddenly.
+   */
+  trail: 0.42,
+  /*
    * Densifies hard at the peak of a surge and thins on the sag, so the hand
    * looks like it is tensing rather than sliding. The jitter term is the boil:
    * a sub-perceptual threshold wobble that keeps individual dots flickering,
@@ -96,7 +108,9 @@ export const HUMAN_LOOK: HandLook = {
   mod: {
     pivotByDrive: -0.045,
     contrastByDrive: 0.5,
-    pivotByJitter: 0.006,
+    // The boil follows the tremor down; a shimmer louder than the shake it is
+    // meant to accompany reads as noise on the image rather than life in it.
+    pivotByJitter: 0.002,
     thresholdByDrive: -0.03,
   },
 }
@@ -119,6 +133,9 @@ export const MACHINE_LOOK: HandLook = {
     ink: [244, 244, 245],
   },
   pixelScale: 0.8,
+  /** Shorter than the human's: this hand moves rarely, and a long tail on a
+   *  still hand is just a blur. */
+  trail: 0.3,
   /*
    * Far quieter, and driven by the FEINT rather than by effort. It solidifies
    * slightly as it considers reaching and thins again as it withdraws, so the
@@ -246,7 +263,13 @@ function pinOffsets(
  * bug rather than as strain.
  */
 const HUMAN_REACH = 9
-const HUMAN_SHAKE = 3.4
+/*
+ * Cut from 3.4 to 0.9 on Nathan's note that the tremor was too much. This is the
+ * dominant visible shake - it displaces the fingertips directly - so it is the
+ * number that matters, well ahead of tremorAmp or elbowTremor in motion.ts.
+ * Zero here leaves a hand that only surges; the lab slider goes there if wanted.
+ */
+const HUMAN_SHAKE = 0.9
 const MACHINE_REACH = 5
 const MACHINE_SHAKE = 0.9
 
@@ -407,6 +430,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         className="absolute bottom-[20%] left-[6%] w-[43%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
+        trail={options.human.trail}
         pins={HUMAN_PINS}
         motion={humanMotion}
         ditherOn={options.ditherOn}
@@ -416,6 +440,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         className="absolute top-[9%] left-[39%] w-[34%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
+        trail={options.machine.trail}
         pins={MACHINE_PINS}
         motion={machineMotion}
         ditherOn={options.ditherOn}
