@@ -528,41 +528,50 @@ check('the tremor envelope is biased toward calm', () => {
  * noise underneath it is still covered by the drift and fbm checks.
  */
 
-check('the pose sequence changes slowly', () => {
+check('poses HOLD, then cross quickly', () => {
   /*
-   * The transitions were driven by the effort curve, whose push phase is 28%
-   * of the cycle by design — so the hand walked all four poses in about a
-   * second and halving the surge rate barely touched it. Nathan said twice that
-   * it was too fast. This asserts the fix at the level the complaint was about:
-   * how long a full traverse of the sequence takes.
+   * The glowstick needs both halves. A per-pixel dissolve has no path at all -
+   * pixels are reassigned, nothing travels - and a SLOW move leaves no smear
+   * even when something does travel. So the sequence must sit still for
+   * seconds and then cross in a fraction of one.
    */
-  const rate = 20
-  const secs = 600
-  const vals = []
-  for (let i = 0; i < secs * rate; i++) vals.push(H.poseDrive(i / rate, 4))
-
-  inRange(Math.min(...vals), 0, 0.6, 'pose sequence should reach the first pose')
-  inRange(Math.max(...vals), 2.4, 3, 'pose sequence should reach the last pose')
-
-  // Mean speed, in poses per second. One pose per several seconds, not four
-  // per second.
-  let travel = 0
-  for (let i = 1; i < vals.length; i++) travel += Math.abs(vals[i] - vals[i - 1])
-  const posesPerSecond = travel / secs
-  assert(
-    posesPerSecond < 0.2,
-    `pose changes too fast: ${posesPerSecond.toFixed(3)} poses/sec (want well under 0.2)`,
-  )
+  const rand = H.rng(88)
+  let t = 0
+  let from = 0
+  let holds = 0
+  let crossings = 0
+  for (let i = 0; i < 300; i++) {
+    const s = H.nextPoseStep(rand, t, 4, from)
+    inRange(s.start - t, H.POSE_CFG.hold[0], H.POSE_CFG.hold[1], 'hold before a crossing')
+    inRange(s.dur, H.POSE_CFG.cross[0], H.POSE_CFG.cross[1], 'crossing duration')
+    assert(s.to !== s.from, `step ${i} crosses to the pose it is already on`)
+    assert(s.dur < (s.start - t) * 0.3, 'a crossing must be far shorter than the hold before it')
+    holds += s.start - t
+    crossings += s.dur
+    from = s.to
+    t = H.poseStepEnd(s)
+  }
+  assert(crossings / (holds + crossings) < 0.15, 'should spend most of its life holding, not crossing')
 })
 
-check('the two hands do not change pose together', () => {
-  // Offset clocks, or the picture pulses as one thing instead of two.
-  let same = 0
-  for (let i = 0; i < 4000; i++) {
-    const t = i / 8
-    if (Math.abs(H.poseDrive(t, 4) - H.poseDrive(t * 0.7 + 40, 4)) < 0.05) same++
-  }
-  assert(same / 4000 < 0.2, `hands track each other too closely (${(same / 40).toFixed(0)}% of the time)`)
+check('the pose is exactly still while holding', () => {
+  // If it creeps during the hold, the crossing stops being an event.
+  const s = { start: 10, from: 0, to: 3, dur: 0.4 }
+  near(H.poseAt(s, 0), 0, 0, 'held at the start pose')
+  near(H.poseAt(s, 9.99), 0, 0, 'still held just before the crossing')
+  near(H.poseAt(s, 10.4), 3, 0, 'settled on the target')
+  near(H.poseAt(s, 60), 3, 0, 'stays settled')
+  near(H.poseSpeed(s, 5), 0, 0, 'no speed while holding')
+  near(H.poseSpeed(s, 60), 0, 0, 'no speed after settling')
+})
+
+check('crossing speed peaks mid-sweep, which is what the trail draws', () => {
+  const s = { start: 0, from: 0, to: 3, dur: 0.4 }
+  const mid = H.poseSpeed(s, 0.2)
+  const early = H.poseSpeed(s, 0.02)
+  const late = H.poseSpeed(s, 0.38)
+  assert(mid > early && mid > late, 'speed should peak mid-crossing')
+  assert(mid > 4, `crossing too slow to leave a trail: ${mid.toFixed(2)} poses/sec`)
 })
 
 /* -------------------------------------------------- the degradation --- */

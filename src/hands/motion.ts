@@ -560,20 +560,70 @@ export function machinePose(t: number, feint: Feint | null, cfg = MACHINE_CFG): 
  * because the old coupling made the strongest argument for a speed nobody
  * wanted.
  */
+/**
+ * 🔴 HOLD, THEN SWEEP. This shape is the whole reason the glowstick works.
+ *
+ * Nathan: "really show the transition like how when i move a glowstick you can
+ * see the path from piont a to be, you just made the points a and b show up
+ * better." Exactly right, and it was two separate failures.
+ *
+ * First, a per-pixel dissolve HAS NO PATH. Pixels are reassigned from one still
+ * to the other; nothing travels between them, so a temporal trail can only make
+ * A and B linger. Second, a slow continuous wander leaves no smear even when
+ * something does move — a glowstick smears because it moves FAST.
+ *
+ * So the sequence holds a pose for several seconds and then crosses to the next
+ * in a fraction of one. Infrequent, which is the "slow" he asked for twice, and
+ * quick in the crossing, which is what the trail can actually draw.
+ */
 export const POSE_CFG = {
-  /** Noise units per second. One unit is roughly one pose-length wander. */
-  rate: 0.05,
+  /** Seconds spent holding a pose before moving. */
+  hold: [3.5, 8] as const,
+  /** Seconds to cross to the next. Short: this is the part that smears. */
+  cross: [0.3, 0.5] as const,
 } as const
 
-export function poseDrive(t: number, count: number): number {
-  if (count <= 1) return 0
-  /*
-   * Gain above 0.5 and then clamped, because fBm rarely reaches its own
-   * extremes: at unity gain the walk bottomed out at 0.61 over ten minutes, so
-   * the FIRST pose was never actually shown. Overdriving and clipping means the
-   * ends of the sequence get real screen time instead of being asymptotes.
-   */
-  return clamp01(0.5 + 0.85 * fbm(t * POSE_CFG.rate, 3, 613)) * (count - 1)
+export type PoseStep = { start: number; from: number; to: number; dur: number }
+
+export function nextPoseStep(
+  rand: () => number,
+  after: number,
+  count: number,
+  from: number,
+): PoseStep {
+  const hold = POSE_CFG.hold[0] + rand() * (POSE_CFG.hold[1] - POSE_CFG.hold[0])
+  const dur = POSE_CFG.cross[0] + rand() * (POSE_CFG.cross[1] - POSE_CFG.cross[0])
+  // Never pick the pose it is already on, or the hold silently doubles.
+  let to = Math.floor(rand() * (count - 1))
+  if (to >= from) to += 1
+  return { start: after + hold, from, to, dur }
+}
+
+export function poseStepEnd(s: PoseStep): number {
+  return s.start + s.dur
+}
+
+/** Where along the sequence the hand is at time t. */
+export function poseAt(s: PoseStep, t: number): number {
+  if (t <= s.start) return s.from
+  if (t >= s.start + s.dur) return s.to
+  const p = (t - s.start) / s.dur
+  // Eased both ends so the crossing accelerates and settles rather than
+  // starting and stopping at full speed.
+  return s.from + (s.to - s.from) * easeInOutSine(p)
+}
+
+/**
+ * How fast the pose is changing, in poses per second. Zero while holding, high
+ * during a crossing — which is what drives the physical sweep that the trail
+ * then draws as a path.
+ */
+export function poseSpeed(s: PoseStep, t: number): number {
+  if (t <= s.start || t >= s.start + s.dur) return 0
+  const p = (t - s.start) / s.dur
+  // Derivative of the ease, normalised: peaks at the midpoint of the crossing.
+  const d = (Math.PI / 2) * Math.sin(Math.PI * p)
+  return ((s.to - s.from) / s.dur) * d
 }
 
 /* --------------------------------------------------- the degradation --- */

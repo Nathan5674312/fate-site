@@ -28,6 +28,7 @@ import { HUMAN_PINS, MACHINE_PINS, type Pin } from './warp'
 import {
   type Degrade,
   type Feint,
+  type PoseStep,
   type Gain,
   type Pose,
   FULL,
@@ -37,7 +38,10 @@ import {
   effort,
   feintAmount,
   drift,
-  poseDrive,
+  nextPoseStep,
+  poseAt,
+  poseSpeed,
+  poseStepEnd,
   sway,
   tremor,
   tremorEnvelope,
@@ -295,6 +299,15 @@ function pinOffsets(
 /** How far each pin aimlessly wanders, in source pixels, at full weight. */
 const WANDER = 2.4
 
+/**
+ * Pixels of physical travel per pose-per-second of crossing speed.
+ *
+ * This is the glowstick dial. Too low and the hand teleports between poses with
+ * nothing in between; too high and it lunges across the frame. The crossing
+ * lasts ~0.4s and covers 1-3 poses, so speeds run about 2.5-7 poses/sec.
+ */
+const SWEEP = 26
+
 const HUMAN_REACH = 9
 /*
  * 3.4 -> 0.9 -> 0.6 across three rounds of Nathan watching it. This is the
@@ -382,6 +395,11 @@ export function Hands({ options }: { options: HandsOptions }) {
     let degrade: Degrade = nextDegrade(rand, 0)
     let lastDegradeNonce = opts.current.degradeNonce
 
+    // Each hand crosses between poses on its own schedule, so the picture never
+    // changes as one piece.
+    let humanStep: PoseStep = nextPoseStep(rand, 0, HUMAN_POSES.length, 0)
+    let machineStep: PoseStep = nextPoseStep(rand, 1.7, MACHINE_POSES.length, 0)
+
     // A live condition, not a one-shot read: someone who turns reduced motion
     // on should not have to reload to stop a hand shaking at them.
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -439,6 +457,24 @@ export function Hands({ options }: { options: HandsOptions }) {
       // Shared by both hands, so it has to be resolved before either is built.
       const block = degradeBlock(degrade, clock)
 
+      if (clock > poseStepEnd(humanStep)) {
+        humanStep = nextPoseStep(rand, clock, HUMAN_POSES.length, humanStep.to)
+      }
+      if (clock > poseStepEnd(machineStep)) {
+        machineStep = nextPoseStep(rand, clock, MACHINE_POSES.length, machineStep.to)
+      }
+      /*
+       * THE SWEEP. A pose crossing is not just a dissolve now - the hand also
+       * physically travels while it happens, and THAT is what the trail draws
+       * as a path from one pose to the next. Without it there is nothing moving
+       * between A and B for a trail to record, however long the trail is.
+       *
+       * Proportional to how fast the pose is changing, so it is zero while
+       * holding and peaks mid-crossing.
+       */
+      const humanSweep = poseSpeed(humanStep, clock) * SWEEP
+      const machineSweep = poseSpeed(machineStep, clock) * SWEEP * 0.7
+
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
       // same gesture rather than three loops that drift apart over minutes.
@@ -459,12 +495,14 @@ export function Hands({ options }: { options: HandsOptions }) {
       const close = s * CLOSE_TRAVEL
 
       humanMotion.current = {
-        transform: transformOf(humanPose(clock, -38, undefined, o.gain), HUMAN_TRAVEL, close, 0),
+        transform: transformOf(
+          humanPose(clock, -38, undefined, o.gain),
+          HUMAN_TRAVEL,
+          close + humanSweep,
+          humanSweep * 0.45,
+        ),
         blend: e,
-        // Its own slow clock, NOT the effort curve - see poseDrive. Effort's
-        // push phase is fast by design, so driving poses from it walked the
-        // hand through all four in about a second regardless of the surge rate.
-        pose: poseDrive(clock, HUMAN_POSES.length),
+        pose: poseAt(humanStep, clock),
         block,
         look: modulate(o.human.look, o.human.mod, { primary: e, jitter: tr }),
         offsets: pinOffsets(HUMAN_PINS, clock, HUMAN_REACH, HUMAN_SHAKE, o.gain, tremorEnvelope(clock)),
@@ -474,15 +512,18 @@ export function Hands({ options }: { options: HandsOptions }) {
       machineMotion.current = {
         // No vertical component: the machine sits below the human's fingertip,
         // so drifting it down added to the distance while x was removing it.
-        transform: transformOf(machinePose(clock, feint), MACHINE_TRAVEL, -close * 0.85, 0),
+        transform: transformOf(
+          machinePose(clock, feint),
+          MACHINE_TRAVEL,
+          -close * 0.85 + machineSweep,
+          machineSweep * -0.4,
+        ),
         blend: 0,
         look: modulate(o.machine.look, o.machine.mod, {
           primary: reaching,
           jitter: sway(clock),
         }),
-        // Slower still than the human's, and offset, so the two hands never
-        // change pose together.
-        pose: poseDrive(clock * 0.7 + 40, MACHINE_POSES.length),
+        pose: poseAt(machineStep, clock),
         block,
         offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
       }
