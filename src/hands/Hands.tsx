@@ -460,20 +460,22 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[30%] left-[4%] w-[50%]"
+        className="absolute bottom-[16%] left-[4%] w-[50%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         trail={options.human.trail}
+        fadeFrom="left"
         pins={HUMAN_PINS}
         motion={humanMotion}
         ditherOn={options.ditherOn}
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[8%] left-[46%] w-[32%]"
+        className="absolute top-[22%] left-[46%] w-[32%]"
         baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         trail={options.machine.trail}
+        fadeFrom="right"
         pins={MACHINE_PINS}
         motion={machineMotion}
         ditherOn={options.ditherOn}

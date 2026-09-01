@@ -43,6 +43,16 @@ export type HandProps = {
   /** Deformation pins for this hand, in image space. */
   pins: readonly Pin[]
   /**
+   * Which edge the arm leaves by, so it can be faded out there.
+   *
+   * The crops end in a hard straight cut where the arm was sliced out of the
+   * fresco. At desktop widths the cover-stage crops that off-frame and nobody
+   * sees it, but on a narrow window the whole stage is visible and both hands
+   * visibly STOP at a diagonal line. A short alpha ramp at that edge reads as
+   * the arm continuing past the frame instead.
+   */
+  fadeFrom: 'left' | 'right'
+  /**
    * Persistence of the previous frames, 0..1. 0 replaces the image outright;
    * higher values leave a decaying after-image, so a pose change smears into
    * the next one instead of cutting. Nathan's word for it was glowstick.
@@ -57,7 +67,7 @@ export type HandProps = {
   ditherOn: boolean
 }
 
-export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, motion, ditherOn }: HandProps) {
+export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, fadeFrom, motion, ditherOn }: HandProps) {
   const move = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -222,7 +232,12 @@ export function Hand({ srcs, className, baseTransform, pixelScale, pins, trail, 
             width={size.w}
             height={size.h}
             className="w-full"
-            style={{ imageRendering: 'pixelated' }}
+            style={{
+              imageRendering: 'pixelated',
+              // Applied in the element's own space, so it follows the image
+              // through the wrapper's rotation rather than fading a screen edge.
+              maskImage: `linear-gradient(to ${fadeFrom === 'left' ? 'right' : 'left'}, transparent 0%, rgba(0,0,0,0.35) 6%, black 17%)`,
+            }}
           />
         )}
       </div>
