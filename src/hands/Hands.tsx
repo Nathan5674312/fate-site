@@ -404,7 +404,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         */}
       <Hand
         srcs={HUMAN_POSES}
-        className="absolute bottom-[6%] left-[2%] w-[43%]"
+        className="absolute bottom-[20%] left-[6%] w-[43%]"
         baseTransform="rotate(-14deg)"
         pixelScale={options.human.pixelScale}
         pins={HUMAN_PINS}
@@ -413,8 +413,8 @@ export function Hands({ options }: { options: HandsOptions }) {
       />
       <Hand
         srcs={MACHINE_POSES}
-        className="absolute top-[4%] left-[50%] w-[34%]"
-        baseTransform="rotate(10deg)"
+        className="absolute top-[9%] left-[39%] w-[34%]"
+        baseTransform="rotate(26deg)"
         pixelScale={options.machine.pixelScale}
         pins={MACHINE_PINS}
         motion={machineMotion}

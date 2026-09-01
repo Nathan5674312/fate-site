@@ -11,7 +11,7 @@
  *
  * The research behind the constants is in `docs/hands.md`. The short version:
  *
- *   HUMAN   two layers. An EFFORT surge at ~0.85Hz that pushes, holds and sags,
+ *   HUMAN   two layers. An EFFORT surge at ~0.4Hz that pushes, holds and sags,
  *           with a 9-11Hz physiological TREMOR riding on top whose amplitude
  *           doubles at full extension. Real tremor is 8-12Hz, but at 60fps that
  *           alone reads as a buzzing phone; the slow layer is what reads as
@@ -91,8 +91,16 @@ export function rng(seed: number): () => number {
 /* ----------------------------------------------------------- the human --- */
 
 export const HUMAN_CFG = {
-  /** Surges per second. Slow enough to read as effort rather than vibration. */
-  effortHz: 0.85,
+  /**
+   * Surges per second. Slow enough to read as effort rather than vibration.
+   *
+   * Halved from 0.85 once the four poses were wired: this rate drives the POSE
+   * SEQUENCE as well as the shake, so at 0.85 the hand ran through all four
+   * poses and back every 1.2 seconds, which reads as frantic rather than
+   * straining. The tremor underneath is untouched - it is the fast layer and it
+   * should stay fast.
+   */
+  effortHz: 0.42,
   /** Fraction of the cycle spent pushing out. Fast, because effort is fast. */
   push: 0.28,
   /** Fraction spent held at full extension, where the tremor doubles. */
@@ -134,8 +142,14 @@ export const HUMAN_CFG = {
  * frequencies are irrational fractions of the surge rate (see PHI above), so
  * the envelope never realigns with the cycle it is modulating.
  */
-const ENV1 = 0.85 * PHI * PHI * 0.44 // ~0.1425Hz, incommensurate with the surge
-const ENV2 = ENV1 * PHI // ~0.0881Hz
+/*
+ * Derived FROM the surge rate rather than hard-coded, so slowing the hand slows
+ * its variation with it. Left at the old literal 0.85 these would have kept
+ * cycling at the original speed against a surge running at half of it - a
+ * mismatch that is hard to spot and impossible to unsee once spotted.
+ */
+const ENV1 = HUMAN_CFG.effortHz * PHI * PHI * 0.44
+const ENV2 = ENV1 * PHI
 
 export function effort(t: number, cfg = HUMAN_CFG): number {
   const p = (t * cfg.effortHz) % 1
