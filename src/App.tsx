@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
+import { BRAND, CLAIMS, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 import { usePageMotion } from './motion'
 
@@ -388,6 +388,18 @@ export default function App() {
         {/* WAITLIST */}
         <Section id="waitlist">
           <Waitlist />
+          {/*
+            * The hands get their one line of explanation here, after the form
+            * rather than before it, so it reads as a note the reader arrives at
+            * and not a caption on an image they have not finished looking at.
+            *
+            * Taupe and small: it is metadata about the page, not a claim the
+            * product is making, and it must not compete with the CTA directly
+            * above it.
+            */}
+          <p className="mt-12 max-w-xl text-sm leading-relaxed text-taupe">
+            {HANDS.note}
+          </p>
         </Section>
 
         {/* FOOTER */}

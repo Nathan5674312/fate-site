@@ -140,6 +140,39 @@ export const LINKS = {
   repoLabel: 'github.com/Nathan5674312/fate',
 } as const
 
+/**
+ * THE ONE LINE THAT EXPLAINS THE HANDS, and the only place the page says out
+ * loud what the background is.
+ *
+ * It sits under the waitlist on purpose: by then the reader has scrolled the
+ * whole page, which means they have watched the gap close without being told
+ * that it was closing. Saying it earlier would turn a thing they noticed into
+ * a caption they were handed.
+ *
+ * 🔴 THE CASTING IS INVERTED AND THE WORDING DEPENDS ON IT. In Hands.tsx the
+ * HUMAN is God's hand (straining, index finger out, tendons up) and the MACHINE
+ * is Adam's (limp, wrist drooping, unbothered). So the human is the one doing
+ * the reaching and the machine is the one that will not reach back. Any rewrite
+ * that makes the human reach for something ABOVE it inverts the picture it is
+ * captioning - see the header of src/hands/Hands.tsx before editing this.
+ *
+ * This line was very nearly 'humans reach for something GREATER than
+ * themselves', which is exactly the trap the paragraph above describes, so it
+ * is recorded here rather than left for someone to walk into twice. 'Greater'
+ * puts the human underneath and makes the machine the thing above - the
+ * original fresco, and the inverse of the recast. It also hands the page an
+ * argument it does not make anywhere else, that the machine is the superior
+ * thing, when the whole gag is that it cannot be bothered to reach back.
+ * 'Past themselves' keeps the straining and drops the hierarchy. Do not
+ * improve it back.
+ */
+export const HANDS = {
+  note:
+    'Humans reach past themselves, and the machine has not troubled itself to ' +
+    'reach back. The hands behind this page are Michelangelo’s, recast — they ' +
+    'close as you scroll, and never touch.',
+} as const
+
 export const FOOTER = {
   madeBy: `${BRAND.name} is made by ${BRAND.studio}.`,
   year: 2026,
