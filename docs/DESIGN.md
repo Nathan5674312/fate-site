@@ -134,12 +134,22 @@ Owned by `motion-system`; GSAP is the engine, per the `gsap` skill.
 
 - Entry: staggered, `amount` not `each`, so the total does not change when the
   content does.
-- `to()` from a CSS-hidden state, never `from()` — `from()` paints the finished
-  position for one frame first.
+- ~~`to()` from a CSS-hidden state, never `from()`~~ → **`from()`, inside
+  `useGSAP`** (superseded 2026-09-01). The rule's reason was that `from()`
+  paints the finished position for one frame first. That is true of a plain
+  `useEffect`; `useGSAP` runs in a LAYOUT effect, so the start state is applied
+  before the browser's first paint and there is no flash — verified on the live
+  hero. The rule is reversed rather than bent because the CSS-hidden half is
+  the part that actually hurts: it hides content in a stylesheet, so a page
+  whose JavaScript fails to load renders blank instead of rendering plain HTML.
+  Hiding from JS means only a working bundle can hide anything.
 - One ticker. If Lenis lands later, it drives `gsap.ticker`; never Lenis and
   ScrollSmoother together.
-- Reveal once, then disconnect the observer. A page that dismantles itself on
-  scroll-up looks broken.
+- Reveal once, then stop watching — `once: true` on the ScrollTrigger. A page
+  that dismantles itself on scroll-up looks broken.
+- Reduced motion is a `gsap.matchMedia()` branch, never an `if`. An `if` runs
+  once, so flipping the OS setting mid-session strands the page — and with
+  reveals that start hidden, stranded can mean invisible.
 
 ## 9. The fold — Creation of Adam, inverted
 
@@ -262,8 +272,10 @@ is still because it is finished; the other never stops because it cannot arrive.
   something else to remove. Waiting on direction.
 - None of the three surfaces are built. The graph existed only in the doorway
   and went with it.
-- GSAP is installed but unused. The fold is still static — the retraction is
-  drawn, not animated. Motion is the obvious next step.
+- ~~GSAP is installed but unused.~~ Wired 2026-09-01 in `src/motion.ts`:
+  SplitText line-mask entrance on the hero headline, staggered sub and CTA,
+  and one ScrollTrigger per section staggering its own items. Transform and
+  opacity only. Bundle 70kB → 118kB gzipped.
 - **Arm direction unconfirmed.** First instruction said bottom-LEFT, the later
   one said bottom-right to top-left. Built to the later one.
 - The hand is contour/wireframe, not filled anatomy. Deliberate — a badly drawn

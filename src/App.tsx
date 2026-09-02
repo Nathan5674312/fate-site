@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
+import { usePageMotion } from './motion'
 
 /**
  * The whole page. One file because it is one page — a router and a components/
@@ -11,40 +12,14 @@ import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
  */
 
 /**
- * Reveals a section once, the first time it is scrolled near.
+ * A section, tagged for the motion layer rather than wiring its own observer.
  *
- * `once` is the point: re-hiding a section when it leaves the viewport means
- * scrolling up shows the page dismantling itself, and the observer keeps firing
- * for the life of the page. Disconnecting after the first intersection is both
- * the nicer behaviour and the cheaper one.
+ * It used to hold an IntersectionObserver per instance and toggle a
+ * `data-shown` attribute that a CSS transition watched. That is replaced by one
+ * ScrollTrigger per section in motion.ts, because the CSS transition and GSAP
+ * would otherwise animate the same properties against each other - see the
+ * header there.
  */
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    // No IntersectionObserver (or reduced motion, where the CSS shows
-    // everything anyway) must never leave the page invisible. Show, then stop.
-    if (typeof IntersectionObserver === 'undefined') {
-      el.setAttribute('data-shown', '')
-      return
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue
-          e.target.setAttribute('data-shown', '')
-          io.disconnect()
-        }
-      },
-      { rootMargin: '0px 0px -10% 0px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return ref
-}
-
 function Section({
   children,
   className = '',
@@ -54,9 +29,12 @@ function Section({
   className?: string
   id?: string
 }) {
-  const ref = useReveal<HTMLElement>()
   return (
-    <section ref={ref} id={id} data-reveal className={`mx-auto w-full max-w-3xl px-6 ${className}`}>
+    <section
+      id={id}
+      data-anim="section"
+      className={`mx-auto w-full max-w-3xl px-6 ${className}`}
+    >
       {children}
     </section>
   )
@@ -251,8 +229,16 @@ function Waitlist() {
 }
 
 export default function App() {
+  /*
+   * The motion layer is scoped to this element, so every selector in motion.ts
+   * resolves inside the page and cannot reach the hands' own canvases - those
+   * run their own loop and must not be touched by a tween.
+   */
+  const root = useRef<HTMLDivElement>(null)
+  usePageMotion(root)
+
   return (
-    <>
+    <div ref={root}>
       <a
         href="#waitlist"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-10 focus:rounded focus:bg-cream focus:px-4 focus:py-2 focus:text-ink"
@@ -331,11 +317,22 @@ export default function App() {
             aria-hidden
             className="pointer-events-none absolute -inset-x-6 -inset-y-8 bg-[radial-gradient(62%_58%_at_38%_50%,var(--color-ink)_30%,transparent_100%)]"
           />
-          <h1 className="relative font-display text-4xl leading-[1.05] text-sand sm:text-6xl">
+          <h1
+            data-anim="hero-title"
+            className="relative font-display text-4xl leading-[1.05] text-sand sm:text-6xl"
+          >
             {HERO.headline}
           </h1>
-          <p className="relative mt-6 max-w-xl text-lg leading-relaxed text-clay">{HERO.sub}</p>
-          <div className="relative mt-9 flex flex-wrap items-center gap-4">
+          <p
+            data-anim="hero-sub"
+            className="relative mt-6 max-w-xl text-lg leading-relaxed text-clay"
+          >
+            {HERO.sub}
+          </p>
+          <div
+            data-anim="hero-cta"
+            className="relative mt-9 flex flex-wrap items-center gap-4"
+          >
             <a
               href="#waitlist"
               className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
@@ -352,7 +349,7 @@ export default function App() {
         <Section>
           <ul className="grid gap-10 sm:grid-cols-3">
             {CLAIMS.map((c) => (
-              <li key={c.title}>
+              <li key={c.title} data-anim-item>
                 <h2 className="font-display text-xl text-sand">{c.title}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-clay">{c.body}</p>
               </li>
@@ -369,7 +366,7 @@ export default function App() {
               <h3 className="text-sm tracking-[0.15em] text-tan uppercase">Built</h3>
               <ul className="mt-4 space-y-3">
                 {STATUS.built.map((s) => (
-                  <li key={s} className="text-sm leading-relaxed text-clay">
+                  <li key={s} data-anim-item className="text-sm leading-relaxed text-clay">
                     {s}
                   </li>
                 ))}
@@ -379,7 +376,7 @@ export default function App() {
               <h3 className="text-sm tracking-[0.15em] text-tan uppercase">Not built</h3>
               <ul className="mt-4 space-y-3">
                 {STATUS.notBuilt.map((s) => (
-                  <li key={s} className="text-sm leading-relaxed text-clay">
+                  <li key={s} data-anim-item className="text-sm leading-relaxed text-clay">
                     {s}
                   </li>
                 ))}
@@ -406,6 +403,6 @@ export default function App() {
           </p>
         </footer>
       </main>
-    </>
+    </div>
   )
 }
