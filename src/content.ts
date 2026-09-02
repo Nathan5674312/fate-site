@@ -101,6 +101,22 @@ export const WAITLIST = {
     'no sharing the address with anyone.',
   placeholder: 'you@example.com',
   button: 'Join',
+  /*
+   * The optional note to the founder.
+   *
+   * `messageNote` is a PROMISE, so it sits under the field as its own line
+   * rather than inside the box as placeholder text. A placeholder is wiped by
+   * the first keystroke, which would delete the promise at the exact moment
+   * someone starts acting on it — and placeholders are skipped or read
+   * inconsistently by screen readers, so it would not reliably be a promise at
+   * all. The placeholder below is only a prompt for what to write.
+   */
+  messageLabel: 'Message to the founder',
+  messageOptional: 'optional',
+  messagePlaceholder: 'What are you building? What do you need it to do?',
+  messageNote:
+    'I read every one of these myself, and when the drop date comes I will write ' +
+    'to each person here personally.',
   /* Every state the form can be in, so no component invents a string. */
   states: {
     ok: 'You are on the list. That is the last you will hear until there is a build.',

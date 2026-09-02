@@ -32,6 +32,18 @@ const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/
 const MAX_EMAIL = 254
 
 /**
+ * The optional note to the founder.
+ *
+ * 2000 is generous for the thing it is for — a few paragraphs about what
+ * someone is building — and the form sets the same number as `maxLength`, so
+ * a person using the page cannot reach this limit. It exists for a POST sent
+ * straight at this path, which is also why exceeding it is a flat rejection
+ * rather than a silent truncation: storing a half-sentence someone wrote and
+ * telling them it was accepted is worse than refusing it.
+ */
+const MAX_MESSAGE = 2000
+
+/**
  * ONE handler with an explicit method check, rather than exporting
  * `onRequestPost` alone.
  *
@@ -56,7 +68,9 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: 'invalid' }, 400)
   }
 
-  const raw = typeof body === 'object' && body !== null ? (body as { email?: unknown }).email : null
+  const fields = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
+
+  const raw = fields.email
   if (typeof raw !== 'string') return json({ error: 'invalid' }, 400)
 
   // Lowercased and trimmed BEFORE the uniqueness check, or the same person
@@ -66,6 +80,19 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: 'invalid' }, 400)
   }
 
+  /*
+   * The message is OPTIONAL, so absent and empty are both fine and both become
+   * NULL. Only a wrong TYPE or an over-long one is a rejection — someone who
+   * left the box alone must never be told they got something wrong.
+   */
+  const rawMessage = fields.message
+  if (rawMessage !== undefined && rawMessage !== null && typeof rawMessage !== 'string') {
+    return json({ error: 'invalid' }, 400)
+  }
+  const trimmed = typeof rawMessage === 'string' ? rawMessage.trim() : ''
+  if (trimmed.length > MAX_MESSAGE) return json({ error: 'invalid' }, 400)
+  const message = trimmed === '' ? null : trimmed
+
   const ref = new URL(request.url).searchParams.get('ref')
 
   try {
@@ -74,8 +101,10 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
      * both pass a prior read and the second would fail anyway — so let the
      * primary key be the thing that decides, and read the failure.
      */
-    await env.DB.prepare('INSERT INTO waitlist (email, created_at, ref) VALUES (?, ?, ?)')
-      .bind(email, new Date().toISOString(), ref)
+    await env.DB.prepare(
+      'INSERT INTO waitlist (email, created_at, ref, message) VALUES (?, ?, ?, ?)',
+    )
+      .bind(email, new Date().toISOString(), ref, message)
       .run()
   } catch (e) {
     /*

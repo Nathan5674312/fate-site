@@ -64,8 +64,12 @@ function Section({
 
 type FormState = 'idle' | 'sending' | keyof typeof WAITLIST.states
 
+/** Matches MAX_MESSAGE in functions/api/waitlist.ts. */
+const MAX_MESSAGE = 2000
+
 function Waitlist() {
   const [email, setEmail] = useState('')
+  const [note, setNote] = useState('')
   const [state, setState] = useState<FormState>('idle')
 
   const submit = async (e: React.FormEvent) => {
@@ -86,7 +90,9 @@ function Waitlist() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email }),
+        // Omitted entirely when blank rather than sent as '', so the
+        // endpoint's "absent means none" path is the one that runs.
+        body: JSON.stringify(note.trim() ? { email, message: note } : { email }),
       })
       if (res.status === 409) {
         setState('duplicate')
@@ -98,6 +104,7 @@ function Waitlist() {
       }
       setState('ok')
       setEmail('')
+      setNote('')
     } catch {
       // A network failure and a server failure read the same to the visitor,
       // and neither is their problem to distinguish.
@@ -113,11 +120,14 @@ function Waitlist() {
       <h2 className="font-display text-3xl text-sand sm:text-4xl">{WAITLIST.heading}</h2>
       <p className="mt-4 max-w-xl leading-relaxed text-clay">{WAITLIST.body}</p>
 
-      <form onSubmit={submit} className="mt-8 flex flex-col gap-3 sm:flex-row" noValidate>
-        <label htmlFor="email" className="sr-only">
+      <form onSubmit={submit} className="mt-8" noValidate>
+        {/* The address and the submit keep their own row, so the optional box
+            below cannot disturb the one-line shape of the actual ask. */}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <label htmlFor="email" className="sr-only">
           Email address
-        </label>
-        <input
+          </label>
+          <input
           id="email"
           type="email"
           inputMode="email"
@@ -133,14 +143,53 @@ function Waitlist() {
             if (state !== 'idle' && state !== 'sending') setState('idle')
           }}
           className="w-full rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60 sm:max-w-sm"
-        />
-        <button
+          />
+          <button
           type="submit"
           disabled={state === 'sending' || done}
           className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {state === 'sending' ? '…' : WAITLIST.button}
-        </button>
+          >
+            {state === 'sending' ? '…' : WAITLIST.button}
+          </button>
+        </div>
+
+        {/*
+          * OPTIONAL, AND IT HAS TO LOOK OPTIONAL. It sits below the address and
+          * the submit, so the shortest path through this form is still
+          * type-address-press-Join and nobody has to decide whether this is
+          * required.
+          *
+          * Inside the <form>, not after it. The value lives in React state, so
+          * a box sitting outside would submit perfectly well and still be
+          * wrong: unassociated for assistive tech and for anything that reads
+          * the form's own elements.
+          *
+          * `messageNote` is Nathan's promise. It is a real element rather than
+          * placeholder text, because a placeholder is wiped by the first
+          * keystroke - it would delete the promise at the exact moment someone
+          * started acting on it - and `aria-describedby` makes it read out on
+          * focus instead of being decoration a screen reader skips.
+          */}
+        <div className="mt-5 max-w-xl">
+          <label htmlFor="founder-message" className="block text-sm text-clay">
+            {WAITLIST.messageLabel} <span className="text-taupe">({WAITLIST.messageOptional})</span>
+          </label>
+          <textarea
+            id="founder-message"
+            name="message"
+            rows={3}
+            maxLength={MAX_MESSAGE}
+            value={note}
+            disabled={done}
+            placeholder={WAITLIST.messagePlaceholder}
+            aria-describedby="founder-message-note"
+            onChange={(ev) => setNote(ev.target.value)}
+            className="mt-2 w-full resize-y rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60"
+          />
+          <p id="founder-message-note" className="mt-2 text-sm text-taupe">
+            {WAITLIST.messageNote}
+          </p>
+        </div>
       </form>
 
       {/* Announced, because a sighted user sees the message appear and a screen

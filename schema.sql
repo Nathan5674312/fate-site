@@ -8,5 +8,19 @@ CREATE TABLE IF NOT EXISTS waitlist (
   email      TEXT PRIMARY KEY NOT NULL,
   created_at TEXT NOT NULL,
   -- Where the signup came from, when a link carries ?ref=. Null is normal.
-  ref        TEXT
+  ref        TEXT,
+  -- Optional note to the founder. NULL when they left the box empty, never ''
+  -- - the Worker normalises it, so "has a message" is `message IS NOT NULL`
+  -- and does not also have to test for the empty string.
+  message    TEXT
 );
+
+-- 🔴 THIS FILE IS ONLY RUN ON A FRESH DATABASE. `CREATE TABLE IF NOT EXISTS`
+-- does nothing to a table that already exists, so adding a column above does
+-- NOT migrate the live one, and the divergence is silent - inserts just start
+-- failing on a column the DB has never heard of.
+--
+-- Columns added to the live DB after first creation, in order. Anything added
+-- above must be added here too, and run:
+--
+--   2026-09-01  ALTER TABLE waitlist ADD COLUMN message TEXT;   (applied)
