@@ -70,6 +70,21 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
 
   const fields = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
 
+  /*
+   * TWO SHAPES, ONE ENDPOINT. `{ email }` joins the list; `{ token, message }`
+   * attaches the optional note afterwards.
+   *
+   * The note is a SECOND request because the address is saved the moment it is
+   * submitted — someone who types their email and then wanders off is still on
+   * the list, which is the entire reason the message box only appears after
+   * that first step.
+   *
+   * Which makes authorisation necessary rather than decorative: without the
+   * token, `{ email, message }` from anyone who knows an address would attach a
+   * note under that person's name, and Nathan would read it as theirs.
+   */
+  if (fields.token !== undefined) return attachMessage(fields, env)
+
   const raw = fields.email
   if (typeof raw !== 'string') return json({ error: 'invalid' }, 400)
 
@@ -80,20 +95,15 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: 'invalid' }, 400)
   }
 
-  /*
-   * The message is OPTIONAL, so absent and empty are both fine and both become
-   * NULL. Only a wrong TYPE or an over-long one is a rejection — someone who
-   * left the box alone must never be told they got something wrong.
-   */
-  const rawMessage = fields.message
-  if (rawMessage !== undefined && rawMessage !== null && typeof rawMessage !== 'string') {
-    return json({ error: 'invalid' }, 400)
-  }
-  const trimmed = typeof rawMessage === 'string' ? rawMessage.trim() : ''
-  if (trimmed.length > MAX_MESSAGE) return json({ error: 'invalid' }, 400)
-  const message = trimmed === '' ? null : trimmed
-
   const ref = new URL(request.url).searchParams.get('ref')
+
+  /*
+   * Unguessable, and stored rather than signed. A random 128-bit value compared
+   * against the column needs no secret to be provisioned, no HMAC, and no key
+   * rotation story — three things that can be misconfigured — and it is exactly
+   * as hard to forge.
+   */
+  const token = crypto.randomUUID()
 
   try {
     /*
@@ -102,9 +112,9 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
      * primary key be the thing that decides, and read the failure.
      */
     await env.DB.prepare(
-      'INSERT INTO waitlist (email, created_at, ref, message) VALUES (?, ?, ?, ?)',
+      'INSERT INTO waitlist (email, created_at, ref, token) VALUES (?, ?, ?, ?)',
     )
-      .bind(email, new Date().toISOString(), ref, message)
+      .bind(email, new Date().toISOString(), ref, token)
       .run()
   } catch (e) {
     /*
@@ -118,7 +128,46 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: 'server' }, 500)
   }
 
-  return json({ ok: true }, 201)
+  // The token goes back to this visitor and nowhere else. It is the only thing
+  // that will let them attach a message to this row.
+  return json({ ok: true, token }, 201)
+}
+
+/**
+ * The second step: attach the optional note to a row already on the list.
+ *
+ * FIRST WRITE WINS — the UPDATE carries `AND message IS NULL`. Re-sending is
+ * therefore not an edit, and a token that leaks later cannot be used to rewrite
+ * what someone already said.
+ *
+ * A miss is reported as 'used' rather than distinguishing "no such token" from
+ * "already has a message", because telling an unknown caller which of those it
+ * hit turns this into an oracle for valid tokens.
+ */
+async function attachMessage(fields: Record<string, unknown>, env: Env): Promise<Response> {
+  const token = fields.token
+  if (typeof token !== 'string' || token.length !== 36) return json({ error: 'invalid' }, 400)
+
+  const raw = fields.message
+  if (typeof raw !== 'string') return json({ error: 'invalid' }, 400)
+  const message = raw.trim()
+  // Nothing to attach is not an error; the visitor simply chose not to write.
+  if (message === '') return json({ ok: true, empty: true }, 200)
+  if (message.length > MAX_MESSAGE) return json({ error: 'long' }, 400)
+
+  try {
+    const res = await env.DB.prepare(
+      'UPDATE waitlist SET message = ? WHERE token = ? AND message IS NULL',
+    )
+      .bind(message, token)
+      .run()
+    if (!res.meta.changes) return json({ error: 'used' }, 409)
+  } catch (e) {
+    console.error('waitlist message failed', e)
+    return json({ error: 'server' }, 500)
+  }
+
+  return json({ ok: true }, 200)
 }
 
 function json(data: unknown, status: number, extra: Record<string, string> = {}): Response {

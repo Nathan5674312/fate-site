@@ -63,14 +63,35 @@ function Section({
 }
 
 type FormState = 'idle' | 'sending' | keyof typeof WAITLIST.states
+/* The note step's own outcomes. Separate from FormState because by then the
+   address is already saved - none of these can mean the signup failed. */
+type NoteState = 'idle' | 'sending' | keyof typeof WAITLIST.messageStates
 
 /** Matches MAX_MESSAGE in functions/api/waitlist.ts. */
 const MAX_MESSAGE = 2000
 
+/** Same loose shape the endpoint applies; see the note there on why. */
+const EMAIL_SHAPE = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/
+
+/**
+ * TWO STEPS, AND THE ORDER IS THE POINT.
+ *
+ * The address is saved the instant it is submitted, and only then does the
+ * message box appear. Nathan asked for it this way round and it is also the
+ * safer shape: someone who types their email, sees the box and wanders off is
+ * already on the list. Asking for both up front would put an optional textarea
+ * between a visitor and the one thing this page actually needs from them.
+ *
+ * The cost is that the note is a SECOND write, which has to prove it belongs to
+ * the row it edits - hence the token the join hands back. See the endpoint.
+ */
 function Waitlist() {
   const [email, setEmail] = useState('')
-  const [note, setNote] = useState('')
   const [state, setState] = useState<FormState>('idle')
+  const [token, setToken] = useState<string | null>(null)
+
+  const [note, setNote] = useState('')
+  const [noteState, setNoteState] = useState<NoteState>('idle')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,7 +102,7 @@ function Waitlist() {
      * is a convenience, never a guard, because nothing stops a POST going
      * straight at the endpoint.
      */
-    if (!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+    if (!EMAIL_SHAPE.test(email)) {
       setState('invalid')
       return
     }
@@ -90,9 +111,7 @@ function Waitlist() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        // Omitted entirely when blank rather than sent as '', so the
-        // endpoint's "absent means none" path is the one that runs.
-        body: JSON.stringify(note.trim() ? { email, message: note } : { email }),
+        body: JSON.stringify({ email }),
       })
       if (res.status === 409) {
         setState('duplicate')
@@ -102,9 +121,11 @@ function Waitlist() {
         setState('error')
         return
       }
+      const data = (await res.json()) as { token?: string }
       setState('ok')
-      setEmail('')
-      setNote('')
+      // No token means no way to attach a note. The signup itself still
+      // succeeded, so this degrades to a plain confirmation rather than an error.
+      setToken(data.token ?? null)
     } catch {
       // A network failure and a server failure read the same to the visitor,
       // and neither is their problem to distinguish.
@@ -112,65 +133,89 @@ function Waitlist() {
     }
   }
 
-  const done = state === 'ok' || state === 'duplicate'
-  const message = state !== 'idle' && state !== 'sending' ? WAITLIST.states[state] : null
+  const sendNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!token || noteState === 'sending' || !note.trim()) return
+    setNoteState('sending')
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, message: note }),
+      })
+      if (res.ok) {
+        setNoteState('sent')
+        return
+      }
+      setNoteState(res.status === 409 ? 'used' : 'error')
+    } catch {
+      setNoteState('error')
+    }
+  }
+
+  const joined = state === 'ok'
+  const status = state !== 'idle' && state !== 'sending' ? WAITLIST.states[state] : null
+  const noteStatus =
+    noteState !== 'idle' && noteState !== 'sending' ? WAITLIST.messageStates[noteState] : null
 
   return (
     <div>
       <h2 className="font-display text-3xl text-sand sm:text-4xl">{WAITLIST.heading}</h2>
       <p className="mt-4 max-w-xl leading-relaxed text-clay">{WAITLIST.body}</p>
 
-      <form onSubmit={submit} className="mt-8" noValidate>
-        {/* The address and the submit keep their own row, so the optional box
-            below cannot disturb the one-line shape of the actual ask. */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+      {/* Unmounted once they are on the list, rather than disabled. A dead
+          address field sitting above a live message box invites a second go at
+          something that already worked. */}
+      {!joined && (
+        <form onSubmit={submit} className="mt-8 flex flex-col gap-3 sm:flex-row" noValidate>
           <label htmlFor="email" className="sr-only">
-          Email address
+            Email address
           </label>
           <input
-          id="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          required
-          value={email}
-          disabled={done}
-          placeholder={WAITLIST.placeholder}
-          onChange={(ev) => {
-            setEmail(ev.target.value)
-            // Clearing the error as they retype is the difference between a
-            // form that is talking to you and one that scolded you once.
-            if (state !== 'idle' && state !== 'sending') setState('idle')
-          }}
-          className="w-full rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60 sm:max-w-sm"
+            id="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required
+            value={email}
+            disabled={state === 'duplicate'}
+            placeholder={WAITLIST.placeholder}
+            onChange={(ev) => {
+              setEmail(ev.target.value)
+              // Clearing the error as they retype is the difference between a
+              // form that is talking to you and one that scolded you once.
+              if (state !== 'idle' && state !== 'sending') setState('idle')
+            }}
+            className="w-full rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60 sm:max-w-sm"
           />
           <button
-          type="submit"
-          disabled={state === 'sending' || done}
-          className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            type="submit"
+            disabled={state === 'sending' || state === 'duplicate'}
+            className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {state === 'sending' ? '…' : WAITLIST.button}
           </button>
-        </div>
+        </form>
+      )}
 
-        {/*
-          * OPTIONAL, AND IT HAS TO LOOK OPTIONAL. It sits below the address and
-          * the submit, so the shortest path through this form is still
-          * type-address-press-Join and nobody has to decide whether this is
-          * required.
-          *
-          * Inside the <form>, not after it. The value lives in React state, so
-          * a box sitting outside would submit perfectly well and still be
-          * wrong: unassociated for assistive tech and for anything that reads
-          * the form's own elements.
-          *
-          * `messageNote` is Nathan's promise. It is a real element rather than
-          * placeholder text, because a placeholder is wiped by the first
-          * keystroke - it would delete the promise at the exact moment someone
-          * started acting on it - and `aria-describedby` makes it read out on
-          * focus instead of being decoration a screen reader skips.
-          */}
-        <div className="mt-5 max-w-xl">
+      {/* Announced, because a sighted user sees the message appear and a screen
+          reader user would otherwise get nothing at all back from the submit. */}
+      <p role="status" aria-live="polite" className="mt-4 min-h-6 text-sm text-clay">
+        {status}
+      </p>
+
+      {/*
+        * THE SECOND STEP. Gated on the token, so it appears exactly when it can
+        * actually work and never as a box that would fail on submit.
+        *
+        * `messageNote` is Nathan's promise, and it is a real element rather than
+        * placeholder text: a placeholder is wiped by the first keystroke, which
+        * would delete the promise at the moment someone acts on it.
+        * `aria-describedby` makes it read out on focus instead of being
+        * decoration a screen reader skips.
+        */}
+      {joined && token && noteState !== 'sent' && (
+        <form onSubmit={sendNote} className="mt-2 max-w-xl">
           <label htmlFor="founder-message" className="block text-sm text-clay">
             {WAITLIST.messageLabel} <span className="text-taupe">({WAITLIST.messageOptional})</span>
           </label>
@@ -180,22 +225,26 @@ function Waitlist() {
             rows={3}
             maxLength={MAX_MESSAGE}
             value={note}
-            disabled={done}
             placeholder={WAITLIST.messagePlaceholder}
             aria-describedby="founder-message-note"
             onChange={(ev) => setNote(ev.target.value)}
-            className="mt-2 w-full resize-y rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60"
+            className="mt-2 w-full resize-y rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe"
           />
           <p id="founder-message-note" className="mt-2 text-sm text-taupe">
             {WAITLIST.messageNote}
           </p>
-        </div>
-      </form>
+          <button
+            type="submit"
+            disabled={noteState === 'sending' || !note.trim()}
+            className="mt-3 rounded-md border border-coffee px-5 py-2 text-sm font-medium text-sand transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            {noteState === 'sending' ? '…' : WAITLIST.messageButton}
+          </button>
+        </form>
+      )}
 
-      {/* Announced, because a sighted user sees the message appear and a screen
-          reader user would otherwise get nothing at all back from the submit. */}
-      <p role="status" aria-live="polite" className="mt-4 min-h-6 text-sm text-clay">
-        {message}
+      <p role="status" aria-live="polite" className="mt-3 min-h-6 text-sm text-clay">
+        {noteStatus}
       </p>
     </div>
   )

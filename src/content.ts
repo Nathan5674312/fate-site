@@ -117,6 +117,14 @@ export const WAITLIST = {
   messageNote:
     'I read every one of these myself, and when the drop date comes I will write ' +
     'to each person here personally.',
+  messageButton: 'Send',
+  /* The note step's own outcomes. Separate from `states` because by this point
+     the address is already saved — none of these can mean the signup failed. */
+  messageStates: {
+    sent: 'Got it. I will read it.',
+    used: 'A message is already attached to this signup.',
+    error: 'Could not send that. Your place on the list is safe either way.',
+  },
   /* Every state the form can be in, so no component invents a string. */
   states: {
     ok: 'You are on the list. That is the last you will hear until there is a build.',

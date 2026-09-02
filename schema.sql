@@ -12,7 +12,12 @@ CREATE TABLE IF NOT EXISTS waitlist (
   -- Optional note to the founder. NULL when they left the box empty, never ''
   -- - the Worker normalises it, so "has a message" is `message IS NOT NULL`
   -- and does not also have to test for the empty string.
-  message    TEXT
+  message    TEXT,
+  -- Issued on signup and handed back to that visitor once. It is what lets the
+  -- SECOND request - the optional message, sent after the address is already
+  -- saved - prove it belongs to this row. Without it, knowing someone's address
+  -- would be enough to attach a note to their name.
+  token      TEXT
 );
 
 -- 🔴 THIS FILE IS ONLY RUN ON A FRESH DATABASE. `CREATE TABLE IF NOT EXISTS`
@@ -24,3 +29,4 @@ CREATE TABLE IF NOT EXISTS waitlist (
 -- above must be added here too, and run:
 --
 --   2026-09-01  ALTER TABLE waitlist ADD COLUMN message TEXT;   (applied)
+--   2026-09-01  ALTER TABLE waitlist ADD COLUMN token TEXT;     (applied)
