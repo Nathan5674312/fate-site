@@ -217,6 +217,9 @@ export default function App() {
             <div className="dither-cloud dither-cloud-a" />
             <div className="dither-cloud dither-cloud-b" />
           </div>
+          {/* Erases the field under the copy. Painted rather than masked, on
+              purpose and for speed — see the block in Dither.css. */}
+          <div className="dither-knockout" />
         </div>
         <Hands options={DEFAULT_OPTIONS} />
       </div>
