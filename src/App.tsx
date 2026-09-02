@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { BRAND, CLAIMS, FOOTER, HERO, LINKS, STATUS, WAITLIST } from './content'
-import './backdrop/Dither.css'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 
 /**
@@ -179,48 +178,31 @@ export default function App() {
         * aria-hidden because it is decoration. A screen reader announcing two
         * canvases would be noise, and the argument they make is entirely visual.
         */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 isolate bg-ink">
-        {/*
-          * The dithered field is the GROUND the hands stand on, which is why it
-          * is a sibling before them rather than a wrapper around them. The hands
-          * canvases run at opacity 0.68 (index.css .hands-layer), so until now
-          * they composited against flat `bg-ink`; they now composite against
-          * this, and the extra texture under them is the whole point.
-          *
-          * The opacity is HERE rather than in the cloud colours, and that is not
-          * a style preference. The dot mask fixes how much of each 3px cell can
-          * ever be lit, so dimming by darkening the bone just makes the dots a
-          * muddier grey at the same coverage instead of quieting the field. Same
-          * reason `.hands-layer canvas` carries its opacity in index.css.
-          *
-          * 0.16 because at 0.4 it was the loudest thing on the page — it read as
-          * the subject rather than the ground, and the hands lost to it.
-          * `.dither-backdrop` is what erases it under the copy.
-          *
-          * 🔴 "IT IS ABOVE THE HANDS" IS NOT A Z-INDEX BUG, and reaching for
-          * z-index again will not fix it. Measured in the live DOM, not guessed:
-          * this layer computes to `z-index: -10` inside the stacking context the
-          * parent's `isolate` creates, and the hands compute to `auto`, so the
-          * field paints at step 3 of the painting order and the hands at step 8.
-          * It is underneath.
-          *
-          * What actually happens is SHOW-THROUGH. `.hands-layer canvas` is
-          * translucent (index.css), so whatever is behind the hands is visible
-          * through them on purpose — and a dithered hand is mostly holes. Bright
-          * bone dots landing in those holes read as sitting on top of the hand.
-          *
-          * The only lever is relative strength: this stays low, and the hands
-          * were raised to 0.68 to win the overlap.
-          */}
-        <div className="dither-backdrop absolute inset-0 -z-10 opacity-[0.16]">
-          <div className="dither-field">
-            <div className="dither-cloud dither-cloud-a" />
-            <div className="dither-cloud dither-cloud-b" />
-          </div>
-          {/* Erases the field under the copy. Painted rather than masked, on
-              purpose and for speed — see the block in Dither.css. */}
-          <div className="dither-knockout" />
-        </div>
+      {/*
+        * 🔴 THERE IS NO BACKDROP FIELD BEHIND THE HANDS, AND ADDING ONE BACK IS
+        * A DECISION, NOT A GAP TO FILL.
+        *
+        * A dithered wave field lived here and was removed on Nathan's call. It
+        * cost two rewrites and a performance regression, and the short version
+        * for anyone tempted to reintroduce it:
+        *
+        *   - As WebGL (a React Bits shader, three.js + R3F + postprocessing) it
+        *     rendered one correct frame and then never ticked again, so it was a
+        *     still photograph while the hands animated fine beside it. Raising
+        *     its waveSpeed did nothing. It also cost 255 kB gzipped.
+        *   - As CSS it moved, but the feTurbulence tile behind it measured 33 ms
+        *     to rasterise against a 16.67 ms frame budget, and the page took a
+        *     CPU from 4% to 96%.
+        *
+        * If a ground texture is ever wanted here again, the shape of the answer
+        * is a PRE-RENDERED image - one decode, nothing to recompute per frame -
+        * not a shader and not a runtime filter.
+        *
+        * The hands keep their own layer. `bg-ink` on it rather than on body: a
+        * fixed element behind transparent content needs something to paint on,
+        * or the hands composite against whatever the browser feels like.
+        */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-ink">
         <Hands options={DEFAULT_OPTIONS} />
       </div>
 
