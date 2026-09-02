@@ -664,7 +664,25 @@ export function Hands({ options }: { options: HandsOptions }) {
         * frame deliberately, so fitting merely letterboxes them and stops the
         * arms reaching the viewport edges at all.
         */}
-      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[168vh] -translate-x-1/2 -translate-y-1/2">
+      {/*
+        * -translate-y-[44%] rather than -1/2: the stage is dropped 6% of its own
+        * height, which is ~47px at 1265x720.
+        *
+        * Nathan asked twice for the hands to come down. Doing it HERE, on the
+        * stage, rather than on each hand is the point - the two hands are a
+        * composition and the gap between the fingertips is its subject, so
+        * nudging them individually is two chances to break the thing being
+        * asked for. Moving the stage moves both by exactly the same amount and
+        * every percentage inside it, including the machine's wrist arithmetic
+        * below, is untouched.
+        *
+        * Headroom check, so the next nudge does not have to rediscover it: the
+        * machine's sliced wrist sits ~192px above the stage's top edge, and the
+        * stage top is already 35px above the viewport. It can drop roughly
+        * another 190px before that cut shows. The human simply loses more of
+        * its arm off the bottom, which is already how it is framed.
+        */}
+      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[168vh] -translate-x-1/2 -translate-y-[44%]">
       {/*
         * NO scaleX(-1) any more. The old single crops were cut from the fresco
         * pointing the wrong way and had to be mirrored; Nathan's pose art
