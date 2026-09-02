@@ -13,11 +13,18 @@
     <!-- A waitlist link exists to be pasted somewhere. Without these it previews
          as a bare URL, which is the one context where this page gets judged
          before it is ever opened. Canonical is absolute because the same build
-         answers on both the apex and the pages.dev preview. -->
-    <link rel="canonical" href="https://divineconstruc.com/" />
+         answers on the custom domain and on the pages.dev deployment URLs.
+
+         WHY www AND NOT THE BARE DOMAIN: Wix registered this domain and will
+         not let its nameservers move, so the apex cannot reach Cloudflare Pages
+         and serves Wix's 404. Only www can be pointed here, by CNAME. Naming
+         the apex canonical would aim every search result and share preview at
+         a dead page. Change both of these back to the apex the day the domain
+         leaves Wix - see the blocker at the top of docs/DEPLOY.md. -->
+    <link rel="canonical" href="https://www.divineconstruc.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Divine Construct" />
-    <meta property="og:url" content="https://divineconstruc.com/" />
+    <meta property="og:url" content="https://www.divineconstruc.com/" />
     <meta property="og:title" content="Fate — a workspace your coding agent already knows how to use" />
     <meta
       property="og:description"
