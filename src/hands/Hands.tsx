@@ -653,16 +653,29 @@ export function Hands({ options }: { options: HandsOptions }) {
         * put them 556px apart and stacked vertically. The gap is the subject of
         * the picture, so it cannot be a function of the window shape.
         *
-        * min-w-[168vh] guarantees the box is wider than 1.6x the viewport height, so
-        * at 16:10 its height always covers and the frame crops in from the
-        * edges, exactly like object-fit: cover.
+        * 168vh guarantees the box is wider than 1.6x the viewport height, so at
+        * 16:10 its height always covers and the frame crops in from the edges,
+        * exactly like object-fit: cover.
         *
-        * This used to be sm-only, with narrow screens getting a fit-to-width
-        * stage instead — because when the hands were small, covering showed
-        * only 40%% of the composition and the visible part did not include the
-        * gap. That is no longer true: the hands are now sized to bleed off the
-        * frame deliberately, so fitting merely letterboxes them and stops the
-        * arms reaching the viewport edges at all.
+        * 🔴 min(168vh, 130vw) — THE CAP IS WHAT MAKES THIS WORK ON A PHONE, AND
+        * IT IS A CAP RATHER THAN A BREAKPOINT ON PURPOSE.
+        *
+        * Cover alone is unbounded on a tall narrow screen. Measured at 375x812
+        * the stage came out 1364px wide, so 27%% of the composition was on
+        * screen: ONE hand at 3.6x magnification, its sliced wrist in plain
+        * view, and the gap between the fingertips — the subject of the whole
+        * picture — entirely off frame.
+        *
+        * The real constraint is not "phones", it is "the stage must never get
+        * far wider than the window", which is what this says. A `sm:` rule
+        * would have left tablets in portrait broken in exactly the same way,
+        * because 168vh is enormous there too.
+        *
+        * 130 is measured, not chosen. Stepping the stage down at 375x812: 168vh
+        * and 160vw and 145vw all put the machine's cut wrist back on screen;
+        * 130vw and 100vw are clean. 130 is the most cover available without the
+        * cut showing, and the cap only ever binds when 168vh is the larger of
+        * the two — on a desktop window it changes nothing.
         */}
       {/*
         * -translate-y-[44%] rather than -1/2: the stage is dropped 6% of its own
@@ -682,7 +695,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         * another 190px before that cut shows. The human simply loses more of
         * its arm off the bottom, which is already how it is framed.
         */}
-      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[168vh] -translate-x-1/2 -translate-y-[44%]">
+      <div className="absolute top-1/2 left-1/2 aspect-[16/10] w-full min-w-[min(168vh,130vw)] -translate-x-1/2 -translate-y-[44%]">
       {/*
         * NO scaleX(-1) any more. The old single crops were cut from the fresco
         * pointing the wrong way and had to be mirrored; Nathan's pose art
