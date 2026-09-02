@@ -1,16 +1,217 @@
-.dither-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
+/*
+ * THE DITHERED FIELD, IN CSS. There is no WebGL here any more.
+ *
+ * It was a React Bits shader: four octaves of Perlin noise domain-warped by
+ * itself, run through a Bayer 8x8 ordered dither as a postprocessing pass. It
+ * looked right and it did not move, on Nathan's machine, twice. The R3F render
+ * loop rendered one correct frame and then never ticked again, so the field
+ * arrived as a still photograph while the hands beside it - plain 2D canvases
+ * on their own rAF - animated fine.
+ *
+ * Raising the shader's `waveSpeed` did not fix it, which is the whole argument
+ * for this file: a frame loop that can silently stop is the wrong substrate for
+ * something whose entire job is to drift. CSS animations run on the compositor,
+ * cannot be starved by a render loop that stopped being scheduled, and keep
+ * running while the main thread is busy.
+ *
+ * It also deletes three.js, @react-three/fiber, @react-three/postprocessing and
+ * postprocessing from the bundle: 324 kB gzipped down to ~69 kB, for a texture
+ * that is drawn at 16% opacity.
+ *
+ * HOW THE LOOK IS REBUILT. A real ordered dither is a moving image sampled
+ * against a SCREEN-FIXED threshold grid. That separation is reproduced exactly:
+ *
+ *   .dither-field  owns the dot grid, is pinned to the viewport, and never
+ *                  moves. It is a repeating radial-gradient mask.
+ *   .dither-cloud  are flat bone masked by fractal noise, drifting THROUGH it.
+ *
+ * So the dots stay put and the brightness passing through them changes, which
+ * is what an ordered dither actually does. The one honest difference: a real
+ * dither varies dot SIZE with luminance and this varies dot ALPHA, because
+ * CSS cannot size a mask cell per-pixel. At 7% opacity that distinction is not
+ * resolvable: compared side by side against the shader's own output, the
+ * difference does not survive the opacity this runs at.
+ */
+
+/*
+ * THE KNOCKOUT. Nathan: "whenever it overlaps anything in the foreground it
+ * disappears." Unchanged from the WebGL version - this part was always right.
+ *
+ * All foreground on this page lives in one centred column - every Section is
+ * `mx-auto w-full max-w-3xl` - so the erase has one geometric answer and does
+ * not need per-element masking.
+ *
+ * 🔴 IT IS A PERCENTAGE ELLIPSE, NOT A rem-WIDTH BAND, and that is the whole
+ * lesson from the first attempt. Masking out a fixed 48rem column plus a 6rem
+ * feather means nothing survives until the viewport is ~60rem wide. Measured on
+ * a 940px window the mask covered the entire viewport and the effect was
+ * completely invisible while looking, from the code, exactly as intended.
+ *
+ * A percentage ellipse scales with the viewport instead, so the corners always
+ * keep their texture and the centre is always clear, at every width.
+ */
+.dither-backdrop {
+  -webkit-mask-image: radial-gradient(
+    ellipse 52% 46% at 50% 42%,
+    transparent 6%,
+    rgba(0, 0, 0, 0.45) 52%,
+    #000 88%
+  );
+  mask-image: radial-gradient(
+    ellipse 52% 46% at 50% 42%,
+    transparent 6%,
+    rgba(0, 0, 0, 0.45) 52%,
+    #000 88%
+  );
 }
 
 /*
- * The canvas is decoration behind the whole document. It must never eat a
- * click, and it must never be announced — App.tsx already marks the backdrop
- * layer aria-hidden, this is the belt to that braces in case the component is
- * ever dropped somewhere else.
+ * THE DOT GRID. 3px cells to match the `pixelSize = 3` the shader was tuned to,
+ * with the dot at 58% of the cell half-diagonal. Coverage works out as
+ * pi * pct^2 / 2, so 58% is 53% of the area lit - about half on, half off,
+ * which is what an ordered dither averages to and what the shader produced.
+ *
+ * `overflow: hidden` matters: the clouds are deliberately larger than this box
+ * so their edges never enter frame, and without it they would paint outside the
+ * masked area and defeat the knockout above.
  */
-.dither-container canvas {
-  display: block;
-  pointer-events: none;
+.dither-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(circle at center, #000 0 58%, transparent 62%);
+  mask-image: radial-gradient(circle at center, #000 0 58%, transparent 62%);
+  -webkit-mask-size: 3px 3px;
+  mask-size: 3px 3px;
+}
+
+/*
+ * BONE, per Nathan. Warm off-white, not the cool slate this started as - the
+ * first pass read as blue-grey and fought the fresco hands, which are warm.
+ *
+ * `inset: -25%` plus the scale in the keyframes is the overscan budget: the
+ * layer is half again the size of the frame, so nothing in the drift can ever
+ * bring the layer's own edge into view.
+ */
+/*
+ * 🔴 THE CLOUDS ARE FRACTAL NOISE, NOT radial-gradient BLOBS, AND THAT WAS NOT
+ * A STYLE CHOICE - THE GRADIENT VERSION WAS BUILT FIRST AND FAILED.
+ *
+ * Three soft radial-gradients per layer produced a smooth WASH. Through the dot
+ * grid it read as flat grey haze with no structure at any scale, and it had to
+ * be pushed to 0.55 wrapper opacity before it was visible at all, at which
+ * point it was a fog rather than a dithered field. The shader it replaced got
+ * its character from FIVE OCTAVES: big shapes with detail all the way down.
+ *
+ * `feTurbulence type='fractalNoise'` is that same construction, and the browser
+ * rasterises it once into an image rather than per frame. `stitchTiles='stitch'`
+ * makes the tile seamless so `mask-repeat` cannot show a seam.
+ *
+ * It drives ALPHA, not colour: the layer is flat bone and the noise is its mask,
+ * so noise peaks show bone and troughs show nothing. `feFuncA` shapes it -
+ * gamma 2.6 on turbulence's ~0.5 mean lands the average near 0.28, then
+ * amplitude 1.7 pushes the peaks to clip, which is what makes it read as sparse
+ * bright wisps instead of uniform grain.
+ *
+ * Alpha rather than luminance is deliberate. CSS `mask-mode` defaults to
+ * `match-source`, which for an image source means ALPHA, and `mask-mode:
+ * luminance` is the less reliably supported path. Encoding the signal in the
+ * channel the default already reads avoids depending on it.
+ */
+.dither-cloud {
+  position: absolute;
+  inset: -25%;
+  background-color: rgb(233, 223, 205);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  will-change: transform;
+}
+
+.dither-cloud-a {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.6' amplitude='1.7'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.6' amplitude='1.7'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 900px 900px;
+  mask-size: 900px 900px;
+  animation: dither-drift-a 71s linear infinite;
+}
+
+/*
+ * A second octave-set at nearly double the frequency and a different seed, so
+ * the two layers never present the same shape twice.
+ *
+ * `screen` rather than plain stacking, so where wisps cross they BRIGHTEN
+ * instead of one hiding the other. That interference is what makes the field
+ * look like it is evolving rather than sliding.
+ */
+.dither-cloud-b {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0075' numOctaves='4' seed='29' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.9' amplitude='1.6'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0075' numOctaves='4' seed='29' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.9' amplitude='1.6'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 700px 700px;
+  mask-size: 700px 700px;
+  mix-blend-mode: screen;
+  animation: dither-drift-b 97s linear infinite;
+}
+
+/*
+ * 🔴 71s AND 97s, AND THE WAYPOINT COUNTS DIFFER (4 against 3). BOTH ARE ON
+ * PURPOSE, AND CHANGING THEM TO ROUND NUMBERS BRINGS BACK A BUG.
+ *
+ * Nathan on the hands, and it applies identically here: "the hands just go in a
+ * back and fourth movement like there swaying, change that make it more random."
+ * A two-point keyframe loop is a sway - the eye finds the turning point within
+ * one cycle and the whole thing collapses into a visible metronome.
+ *
+ * So each layer walks a closed multi-point path instead of bouncing, and the
+ * two periods are coprime, which puts the combined repeat at 71 x 97 = 6887s,
+ * just under two hours. Nobody is going to catch the loop. Round durations like
+ * 60s and 90s share a 30s factor and re-align every half minute, which is
+ * exactly the failure the tremor work already ran into once with frequencies
+ * that were all multiples of 0.1.
+ *
+ * `linear`, not `ease-in-out`: easing parks the field at each waypoint and that
+ * pause is the sway tell all over again.
+ */
+@keyframes dither-drift-a {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1.06);
+  }
+  25% {
+    transform: translate3d(2%, -4%, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.05);
+  }
+  75% {
+    transform: translate3d(-2%, 4%, 0) scale(1.09);
+  }
+  100% {
+    transform: translate3d(-3%, -2%, 0) scale(1.06);
+  }
+}
+
+@keyframes dither-drift-b {
+  0% {
+    transform: translate3d(3%, 2%, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(-4%, 3%, 0) rotate(1.6deg);
+  }
+  66% {
+    transform: translate3d(-1%, -4%, 0) rotate(-1.2deg);
+  }
+  100% {
+    transform: translate3d(3%, 2%, 0) rotate(0deg);
+  }
+}
+
+/*
+ * A perpetual full-viewport animation behind body text is exactly what this
+ * preference is for. Holding the field rather than hiding it keeps the page's
+ * texture and only removes the movement, which is what the shader version did.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .dither-cloud-a,
+  .dither-cloud-b {
+    animation: none;
+  }
 }

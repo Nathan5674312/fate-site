@@ -116,8 +116,23 @@ body {
  * with body copy. Dropped here rather than in the dither so the treatment stays
  * the one Nathan tuned - this is a display concern, not a look concern.
  */
+/*
+ * 0.68, raised from 0.55, because Nathan read the dithered field as sitting IN
+ * FRONT of the hands.
+ *
+ * It is not a z-index bug and raising z-index will not touch it - measured in
+ * the live DOM, `.dither-backdrop` computes to z-index -10 inside the layer's
+ * stacking context and the hands to auto, so the field genuinely paints
+ * underneath. What Nathan is seeing is SHOW-THROUGH: a dithered hand is mostly
+ * holes, and at 0.55 even the ink is half-transparent, so the wave behind it
+ * comes through the hand and reads as being on top of it.
+ *
+ * The fix is therefore relative strength, not order. Making the ink more opaque
+ * means less of the field survives through the hand, so the hand wins the
+ * overlap. Kept under 0.7 because body copy still crosses these canvases.
+ */
 .hands-layer canvas {
-  opacity: 0.55;
+  opacity: 0.68;
 }
 
 /* Reduced motion gets them quieter still: a persistent background is more
