@@ -317,8 +317,38 @@ const TREM1 = HUMAN_CFG.effortHz * PHI
  * completely still, which lowers the average without flattening the bursts that
  * remain. Cutting only the amplitude would have made every burst weaker; this
  * makes them rarer instead, and rare is what he has been asking for throughout.
+ *
+ * 🔴 THEN 0.66 WENT TOO FAR, AND THE MEASUREMENT IS THE ONLY REASON WE KNOW.
+ *
+ * "Rare" was the brief and rare is what it delivered, but at 0.66 the envelope
+ * returns exactly zero for 82% of the time and its LONGEST unbroken silence is
+ * 35.4 seconds. Nothing else on the human is fast enough to cover that: the
+ * only other motion during a hold is `HUMAN_REACH * effort`, measured on the
+ * live site at about half a pixel per second. So a visitor could watch for
+ * half a minute and correctly report that the hands do not move — which is
+ * exactly what visitors reported.
+ *
+ * 0.54 cuts the worst-case silence to 15.2s and leaves the bursts alone: peak
+ * goes 1.71 -> 1.76, three percent, because the gate controls HOW OFTEN the
+ * tremble happens and not how hard. Every one of the five "turn it down"
+ * rounds was about amplitude, and none of them is undone here. Calm is still
+ * the default state — 60% completely still, 80% of the time under 0.8.
+ *
+ * 🔴 MEASURE THIS OVER AN HOUR, NOT OVER TEN MINUTES. The first pass sampled
+ * 600s and reported a 15.2s silence as 11.1s, because the long ones are rare
+ * enough that a short window misses them. The failure being fixed here IS a
+ * rare long silence, so the window has to be long enough to contain one.
+ *
+ * The number that actually predicts the complaint is not the worst case but
+ * the chance a real visit lands entirely inside a silence. Over an hour at
+ * 30Hz, for a visitor who looks for five seconds: 25.6% before, 6.2% after.
+ * One in four people were correct that the hands do not move.
+ *
+ * The numbers above come from sweeping this constant against the whole of
+ * tests/hands.test.mjs; the band that passes runs from about 0.46 to 0.66, so
+ * this is a tuning knob inside a tested range rather than a load-bearing edge.
  */
-const TREMOR_GATE = 0.66
+const TREMOR_GATE = 0.54
 
 export function tremorEnvelope(t: number): number {
   const n = 0.5 + 0.5 * fbm(t * TREM1 * 5.2, 3, 401)
