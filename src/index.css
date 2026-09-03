@@ -41,7 +41,14 @@
 
   --color-sand: #f4f4f5; /* display + primary text, ~18:1 on ground */
   --color-tan: #c9c9cf; /* secondary */
-  --color-clay: #8a8a92; /* body-legal muted, ~5.6:1 */
+  /*
+   * LIFTED FROM #8a8a92, 2026-09-03. Three people told Nathan the copy was
+   * hard to read and this token is why: it carries nearly every paragraph on
+   * the page, and every one of them sits over the fixed hands layer. 5.8:1 is
+   * comfortable against the ground and worth about 2:1 against a lit palm.
+   * 9.3:1 on the ground now, which is what survives the hand behind it.
+   */
+  --color-clay: #b0b0b8; /* body muted, 9.3:1 on ground */
   --color-taupe: #5c5c63; /* metadata only, never body */
 
   --color-coffee: #26262b; /* borders and hairlines */
@@ -116,7 +123,15 @@ body {
  * still crosses these canvases.
  */
 .hands-layer canvas {
-  opacity: 0.68;
+  /*
+   * 0.68 -> 0.55, same 2026-09-03 readability report. The comment above already
+   * anticipated this - "kept under 0.7 because body copy still crosses these
+   * canvases" - and three readers is the evidence that under 0.7 was not far
+   * enough under. Opacity is the safe lever here because it takes nothing away
+   * from the MOTION: every pixel still moves exactly as far, the picture just
+   * sits further back, which is what a background behind text is meant to do.
+   */
+  opacity: 0.55;
 }
 
 /* Reduced motion gets them quieter still: a persistent background is more
@@ -126,4 +141,43 @@ body {
   .hands-layer canvas {
     opacity: 0.3;
   }
+}
+
+/*
+ * READABILITY OVER THE HANDS. Three people told Nathan the copy was hard to
+ * read, 2026-09-03, and they were right: the ink is #08080a and the hands are
+ * bone at 0.68, so body text crossing a lit palm is near-white on light grey.
+ *
+ * 🔴 THIS IS A HALO AND NOT A PLATE, AND THE DIFFERENCE IS THE WHOLE POINT.
+ *
+ * The obvious fix is a panel of ink behind each section, and it was tried: it
+ * covers the fingertips, the fingertips are where all the motion is, and the
+ * page then reads as two frozen arms. That failure is written up at the stage
+ * comment in Hands.tsx - "the hands looked frozen on the site while moving
+ * perfectly in the lab" - and it is the reason this is not a rectangle.
+ *
+ * A text-shadow darkens only the few pixels around each glyph. Between the
+ * lines, in the margins, and everywhere the copy is not, the hands are
+ * untouched and still moving. Contrast where the text is, picture everywhere
+ * else.
+ *
+ * Two stacked shadows rather than one: a tight one does the legibility work
+ * and the wide one stops the tight one reading as an outline. Both are the
+ * ground colour, so on the stretches where there is no hand behind the text
+ * this is invisible.
+ *
+ * It inherits, which is why it is set on the four containers and not on every
+ * heading and paragraph inside them. Static, so it rasterises once - the
+ * no-filters rule at the top of motion.ts is about properties being ANIMATED,
+ * and nothing animates this.
+ */
+[data-anim='section'],
+[data-anim='hero-title'],
+[data-anim='hero-sub'],
+[data-anim='hero-cta'] {
+  text-shadow:
+    0 0 4px var(--color-ink),
+    0 0 10px var(--color-ink),
+    0 0 20px var(--color-ink),
+    0 0 34px var(--color-ink);
 }
