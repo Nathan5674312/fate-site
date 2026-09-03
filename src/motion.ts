@@ -64,7 +64,29 @@ export function usePageMotion(scope: React.RefObject<HTMLElement | null>) {
     () => {
       const mm = gsap.matchMedia()
 
-      mm.add('(prefers-reduced-motion: no-preference)', () => {
+      /*
+       * TWO CONDITIONS, ONE BRANCH. Nathan, 2026-09-03: the reveals have to run
+       * on every device, reduced motion included.
+       *
+       * This used to be a single `no-preference` branch, which meant a visitor
+       * with the OS setting on got no hero reveal and no section reveals at all
+       * - the page simply existed. That is a defensible reading of the
+       * preference and it is not the one being asked for, so `calm` now gets the
+       * same reveals with the TRAVEL taken out: opacity only, no y, shorter.
+       * Fading in place is not what the setting is protecting anyone from;
+       * 26px of slide and a 108% line rise are.
+       *
+       * Still matchMedia and not an `if`, for the reason below: these reveals
+       * begin by HIDING things, so the branch that hides has to be the branch
+       * that reverts when the query stops matching.
+       */
+      mm.add(
+        {
+          full: '(prefers-reduced-motion: no-preference)',
+          calm: '(prefers-reduced-motion: reduce)',
+        },
+        (ctx) => {
+        const calm = !!ctx.conditions?.calm
         const q = gsap.utils.selector(scope)
 
         /*
@@ -74,7 +96,10 @@ export function usePageMotion(scope: React.RefObject<HTMLElement | null>) {
          * position.
          */
         const title = q('[data-anim="hero-title"]')[0]
-        if (title) {
+        if (title && calm) {
+          // No line split under reduced motion: the mask rise IS the travel.
+          gsap.from(title, { autoAlpha: 0, duration: 0.6, ease: 'power2.out' })
+        } else if (title) {
           /*
            * `autoSplit` re-splits when the webfont finishes loading and on
            * resize. Without it the lines are measured against the fallback
@@ -87,34 +112,46 @@ export function usePageMotion(scope: React.RefObject<HTMLElement | null>) {
            * the line rises out of nothing instead of fading through the copy
            * above it.
            */
-          SplitText.create(title, {
-            type: 'lines',
-            mask: 'lines',
-            autoSplit: true,
-            onSplit: (self) =>
-              gsap.from(self.lines, {
-                yPercent: 108,
-                duration: 1.1,
-                ease: 'power4.out',
-                // `amount`, not `each`: the total spread stays 0.28s whether the
-                // headline wraps to two lines or four, so the entrance does not get
-                // slower just because the copy got longer. DESIGN.md section 6.
-                stagger: { amount: 0.28 },
-              }),
-          })
+          /*
+           * Guarded, because a throw here used to take the SECTIONS with it.
+           * Everything below runs in the same callback, so a SplitText that
+           * fails on some browser - it measures line boxes, which is the most
+           * device-dependent thing on the page - meant no section reveals at
+           * all on that browser. The catch keeps the failure local: the
+           * headline just fades instead.
+           */
+          try {
+            SplitText.create(title, {
+              type: 'lines',
+              mask: 'lines',
+              autoSplit: true,
+              onSplit: (self) =>
+                gsap.from(self.lines, {
+                  yPercent: 108,
+                  duration: 1.1,
+                  ease: 'power4.out',
+                  // `amount`, not `each`: the total spread stays 0.28s whether the
+                  // headline wraps to two lines or four, so the entrance does not get
+                  // slower just because the copy got longer. DESIGN.md section 6.
+                  stagger: { amount: 0.28 },
+                }),
+            })
+          } catch {
+            gsap.from(title, { autoAlpha: 0, duration: 0.6, ease: 'power2.out' })
+          }
         }
 
         const rest = q('[data-anim="hero-sub"], [data-anim="hero-cta"]')
         if (rest.length) {
           gsap.from(rest, {
-            y: 18,
+            y: calm ? 0 : 18,
             autoAlpha: 0,
-            duration: 0.9,
+            duration: calm ? 0.6 : 0.9,
             ease: 'power3.out',
             stagger: { amount: 0.12 },
             // Behind the heading rather than with it: the headline is the
             // subject, and everything arriving at once flattens the hierarchy.
-            delay: 0.35,
+            delay: calm ? 0.15 : 0.35,
           })
         }
 
@@ -132,15 +169,16 @@ export function usePageMotion(scope: React.RefObject<HTMLElement | null>) {
           const items = section.querySelectorAll('[data-anim-item]')
           const targets = items.length ? items : [section]
           gsap.from(targets, {
-            y: 26,
+            y: calm ? 0 : 26,
             autoAlpha: 0,
-            duration: 0.85,
+            duration: calm ? 0.6 : 0.85,
             ease: 'power3.out',
             stagger: items.length > 1 ? { amount: 0.35 } : 0,
             scrollTrigger: { trigger: section, start: REVEAL_START, once: true },
           })
         }
-      })
+        },
+      )
 
       /*
        * Triggers are calibrated against the document height at the moment they
@@ -150,8 +188,46 @@ export function usePageMotion(scope: React.RefObject<HTMLElement | null>) {
        */
       document.fonts?.ready.then(() => ScrollTrigger.refresh())
 
+      /*
+       * 🔴 THE FAILSAFE, AND IT IS LOAD-BEARING NOW THAT REDUCED MOTION ALSO
+       * HIDES THINGS.
+       *
+       * The old arrangement had one accidental safety property: the branch that
+       * hid content never ran for reduced-motion users, so no measurement bug
+       * could ever leave THEM staring at an invisible page. Running the reveals
+       * for everyone gives that up, and the whole point of this change is a page
+       * that works on every device no matter what - so the protection has to be
+       * put back deliberately instead of relying on a branch not executing.
+       *
+       * What can strand a reveal is always the same shape: a trigger measured
+       * against a layout that then changed under it. A late webfont, an address
+       * bar collapsing on a phone, a section that was below the fold at
+       * calibration and is not any more.
+       *
+       * So: one refresh a few seconds in, then anything still invisible WHILE
+       * ON SCREEN is shown. On screen is the necessary half of that test - a
+       * blanket reveal would fire every section at once and delete the effect
+       * for everyone. This only ever rescues something the visitor is actually
+       * looking at and cannot see.
+       */
+      const rescue = window.setTimeout(() => {
+        ScrollTrigger.refresh()
+        const root = scope.current
+        if (!root) return
+        for (const el of root.querySelectorAll<HTMLElement>('[data-anim], [data-anim-item]')) {
+          const r = el.getBoundingClientRect()
+          const onScreen = r.top < window.innerHeight && r.bottom > 0
+          if (onScreen && getComputedStyle(el).visibility === 'hidden') {
+            gsap.set(el, { autoAlpha: 1, y: 0 })
+          }
+        }
+      }, 4000)
+
       // Reverts every branch, and with it every element this hook hid.
-      return () => mm.revert()
+      return () => {
+        window.clearTimeout(rescue)
+        mm.revert()
+      }
     },
     { scope },
   )
