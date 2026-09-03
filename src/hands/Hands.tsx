@@ -48,7 +48,6 @@ import {
   humanPose,
   machinePose,
   nextFeint,
-  restPose,
   rng,
 } from './motion'
 
@@ -418,6 +417,24 @@ const MACHINE_SHAKE = 0.9
  */
 const CLOSE_TRAVEL = 18
 
+/**
+ * What `prefers-reduced-motion: reduce` costs the hands. See the long note at
+ * the top of the frame loop for why this is three numbers and not one.
+ *
+ * `speed` is deliberately the mildest of the three. The clock drives the tremor
+ * gate, and the gate's silences are the thing that made visitors say the hands
+ * do not move, so every notch off the clock lengthens exactly the wrong
+ * quantity. 0.7 reads as unhurried and leaves a 5s visit's chance of seeing no
+ * tremor at 11.9% against 6.2% at full speed - worse, but not the 100% these
+ * visitors got when this branch held them still.
+ *
+ * `gain` scales the drive behind both the wrist transform and the finger pins,
+ * and `sweep` scales the pose crossing - the 44px slide between POSE_PLACES,
+ * which is by far the largest single movement on the page and therefore the
+ * one that actually matters to someone who asked for less of it.
+ */
+const CALM = { speed: 0.7, gain: 0.45, sweep: 0.3 } as const
+
 function transformOf(pose: Pose, travel: number, closeX = 0, closeY = 0): string {
   const { dx, dy, rot } = pose.wrist
   const x = dx * travel + closeX
@@ -498,35 +515,39 @@ export function Hands({ options }: { options: HandsOptions }) {
       last = now
       const o = opts.current
 
-      if (systemReduced || o.reduced) {
-        // Held at zero drive: the composed treatment, never a mid-surge one.
-        const rest = transformOf(restPose(), 0)
-        const still = { primary: 0, jitter: 0 }
-        humanMotion.current = {
-          transform: rest,
-          blend: 0,
-          look: modulate(o.human.look, o.human.mod, still),
-          // Reduced motion holds the FIRST pose, never a half-dissolved one.
-          poseFrom: 0,
-          poseTo: 0,
-          poseBlend: 0,
-          block: 1,
-          offsets: HUMAN_PINS.map(() => ({ x: 0, y: 0 })),
-        }
-        machineMotion.current = {
-          transform: rest,
-          blend: 0,
-          look: modulate(o.machine.look, o.machine.mod, still),
-          poseFrom: 0,
-          poseTo: 0,
-          poseBlend: 0,
-          block: 1,
-          offsets: MACHINE_PINS.map(() => ({ x: 0, y: 0 })),
-        }
-        return
-      }
+      /*
+       * REDUCED MOTION IS NOW A CALMER HAND, NOT A DEAD ONE. Nathan's call,
+       * 2026-09-03, after the tremor gate fix: "make it so reduced motion can
+       * not turn off the hands moving but slow them a bit."
+       *
+       * What this used to do was `return` on a rest pose, which held both hands
+       * at translate(0,0) rotate(0) forever - measured in the lab as one single
+       * distinct transform across every frame sampled. Those visitors were the
+       * only ones who saw a genuinely frozen picture rather than an unlucky
+       * silence, and no amount of tuning the gate reached them.
+       *
+       * 🔴 THE REDUCTION COMES OUT OF AMPLITUDE, NOT OUT OF THE CLOCK, AND THAT
+       * ORDERING IS THE WHOLE DESIGN.
+       *
+       * Slowing the clock is the obvious way to say "calmer" and it is a trap
+       * here: the tremor gate's silences are measured in CLOCK seconds, so
+       * halving the speed doubles every silence in wall time and hands exactly
+       * the frozen-looking page back to the people this is meant to fix. At
+       * 0.45x the 15.2s worst case becomes 34s and we are back where we
+       * started. So the clock is only eased to 0.7 - enough to read as unhurried
+       * - and the real quieting is done by scaling what MOVES.
+       *
+       * Amplitude is also the honest lever for the preference itself. What
+       * provokes vestibular trouble is the size and speed of travel across the
+       * visual field, not the existence of change. Half-scale drive on a
+       * background image at 0.3 opacity is a long way from a parallax hero.
+       */
+      const calm = systemReduced || o.reduced
+      const gain: Gain = calm
+        ? { effort: o.gain.effort * CALM.gain, tremor: o.gain.tremor * CALM.gain }
+        : o.gain
 
-      if (o.playing) clock += (delta / 1000) * o.speed
+      if (o.playing) clock += (delta / 1000) * o.speed * (calm ? CALM.speed : 1)
 
       if (o.feintNonce !== lastNonce) {
         lastNonce = o.feintNonce
@@ -557,8 +578,11 @@ export function Hands({ options }: { options: HandsOptions }) {
        */
       const humanBlend = poseBlend(humanStep, clock)
       const machineBlend = poseBlend(machineStep, clock)
-      const humanSweep = poseOffset(humanStep.from, humanStep.to, humanBlend)
-      const machineSweep = poseOffset(machineStep.from, machineStep.to, machineBlend)
+      const sweepK = calm ? CALM.sweep : 1
+      const rawHumanSweep = poseOffset(humanStep.from, humanStep.to, humanBlend)
+      const rawMachineSweep = poseOffset(machineStep.from, machineStep.to, machineBlend)
+      const humanSweep = { x: rawHumanSweep.x * sweepK, y: rawHumanSweep.y * sweepK }
+      const machineSweep = { x: rawMachineSweep.x * sweepK, y: rawMachineSweep.y * sweepK }
 
       /*
        * Strain WINDS UP while a pose is held rather than arriving with it, so
@@ -573,8 +597,8 @@ export function Hands({ options }: { options: HandsOptions }) {
       // One evaluation of each curve, reused for the pose, the pose blend AND
       // the treatment - so the ink, the shake and the reach are provably the
       // same gesture rather than three loops that drift apart over minutes.
-      const e = effort(clock) * o.gain.effort
-      const tr = tremor(clock) * o.gain.tremor
+      const e = effort(clock) * gain.effort
+      const tr = tremor(clock) * gain.tremor
       /*
        * THE GAP CLOSES AS YOU SCROLL. Nathan wants the hands to follow the
        * reader down rather than sit in the hero, and this is what makes that
@@ -587,11 +611,17 @@ export function Hands({ options }: { options: HandsOptions }) {
        * asking on purpose.
        */
       const s = scroll.current
-      const close = s * CLOSE_TRAVEL
+      /*
+       * Scaled under reduced motion along with the sweep, and it is the one
+       * term here that genuinely earns the preference: this is scroll-LINKED
+       * travel, the parallax-shaped thing the setting exists to damp. The gap
+       * still closes as you descend, just less far.
+       */
+      const close = s * CLOSE_TRAVEL * (calm ? CALM.sweep : 1)
 
       humanMotion.current = {
         transform: transformOf(
-          humanPose(clock, -38, undefined, { ...o.gain, tremor: o.gain.tremor * strain }),
+          humanPose(clock, -38, undefined, { ...gain, tremor: gain.tremor * strain }),
           HUMAN_TRAVEL,
           close + humanSweep.x,
           humanSweep.y,
@@ -607,7 +637,7 @@ export function Hands({ options }: { options: HandsOptions }) {
           clock,
           HUMAN_REACH,
           HUMAN_SHAKE,
-          o.gain,
+          gain,
           tremorEnvelope(clock) * strain,
         ),
       }
@@ -631,7 +661,7 @@ export function Hands({ options }: { options: HandsOptions }) {
         poseTo: machineStep.to,
         poseBlend: machineBlend,
         block,
-        offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, o.gain),
+        offsets: pinOffsets(MACHINE_PINS, clock * 0.35, MACHINE_REACH, MACHINE_SHAKE, gain),
       }
     }
 
