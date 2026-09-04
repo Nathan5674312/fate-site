@@ -393,11 +393,13 @@ export default function App() {
             * rather than before it, so it reads as a note the reader arrives at
             * and not a caption on an image they have not finished looking at.
             *
-            * Taupe and small: it is metadata about the page, not a claim the
+            * Small and muted: it is metadata about the page, not a claim the
             * product is making, and it must not compete with the CTA directly
-            * above it.
+            * above it. Clay rather than taupe since 2026-09-03 - taupe is
+            * #5c5c63 and this sits over moving hands, which was too dim to
+            * read; the small size still keeps it under the CTA.
             */}
-          <p className="mt-12 max-w-xl text-sm leading-relaxed text-taupe">
+          <p className="mt-12 max-w-xl text-sm leading-relaxed text-clay">
             {HANDS.note}
           </p>
         </Section>

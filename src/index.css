@@ -181,3 +181,14 @@ body {
     0 0 20px var(--color-ink),
     0 0 34px var(--color-ink);
 }
+
+/*
+ * The halo above inherits, and the hero CTA is the one place inside those
+ * containers where the text is NOT on the ground colour: it is ink on cream.
+ * An ink halo around ink glyphs on a light button reads as a black glow, not
+ * as contrast. Nothing sits behind a solid button either, so it never needed
+ * the halo in the first place.
+ */
+[data-anim='hero-cta'] a {
+  text-shadow: none;
+}

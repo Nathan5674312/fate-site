@@ -169,8 +169,8 @@ export const LINKS = {
 export const HANDS = {
   note:
     'Humans reach past themselves, and the machine has not troubled itself to ' +
-    'reach back. The hands behind this page are Michelangelo’s, recast — they ' +
-    'close as you scroll, and never touch.',
+    'reach back. The hands behind this page are Michelangelo’s, recast — and ' +
+    'they never touch.',
 } as const
 
 export const FOOTER = {
