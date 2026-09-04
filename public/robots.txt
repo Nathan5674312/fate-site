@@ -1,0 +1,11 @@
+# Everything here is public and there is nothing to hide from a crawler.
+#
+# This file exists because of how Cloudflare Pages handles a miss: it returns
+# index.html with a 200 rather than a 404, so before this file existed
+# /robots.txt answered with a page of HTML. Most parsers treat that as garbage
+# and fall through to allow-all, but "most" is not a guarantee to hand the one
+# file whose whole job is to gate crawling. Explicit beats inferred.
+User-agent: *
+Allow: /
+
+Sitemap: https://www.divineconstruc.com/sitemap.xml

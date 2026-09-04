@@ -9,6 +9,9 @@
       content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key. Join the waitlist."
     />
     <meta name="color-scheme" content="dark" />
+    <!-- Matches --color-ink in src/index.css, so Android Chrome's toolbar and
+         the iOS status bar do not sit as a light strip above a black page. -->
+    <meta name="theme-color" content="#08080a" />
 
     <!-- A waitlist link exists to be pasted somewhere. Without these it previews
          as a bare URL, which is the one context where this page gets judged
@@ -23,50 +26,87 @@
          leaves Wix - see the blocker at the top of docs/DEPLOY.md. -->
     <link rel="canonical" href="https://www.divineconstruc.com/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Divine Construct" />
+    <!-- "Construc", no T: BRAND.studio in src/content.ts is spelled that way on
+         purpose - it matches the domain and it is how Nathan writes it. This
+         tag said "Construct" and was the only place on the site that did. -->
+    <meta property="og:site_name" content="Divine Construc" />
     <meta property="og:url" content="https://www.divineconstruc.com/" />
     <meta property="og:title" content="Fate — a workspace your coding agent already knows how to use" />
     <meta
       property="og:description"
       content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key."
     />
-    <!-- og:image is deliberately absent until there is a real screenshot to put
-         in it. A card with a missing image renders as text; a card pointing at a
-         404 renders as broken. -->
-    <meta name="twitter:card" content="summary" />
+    <!-- og:image was deliberately absent while there was nothing real to point
+         at — a card with no image renders as text, a card pointing at a 404
+         renders as broken. There is now a real card at /og.png, built by
+         art-src/og-card.py from the mark and HERO.headline.
+
+         ABSOLUTE, not root-relative. og:image is the one URL in this head that
+         several scrapers will not resolve against the document; Facebook's and
+         iMessage's both want it fully qualified. Same host as canonical, for
+         the www reason above.
+
+         The dimensions are declared because X and Discord lay the card out
+         before the image finishes downloading; without them a 1200x630 lands
+         in a square slot and gets cropped to the wordmark. -->
+    <meta property="og:image" content="https://www.divineconstruc.com/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Fate, over a six-fingered hand: a workspace your coding agent already knows how to use."
+    />
+
+    <!-- summary_large_image, not summary: the card is 1.91:1 and summary crops
+         it to a square thumbnail. -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Fate — a workspace your coding agent already knows how to use" />
     <meta
       name="twitter:description"
       content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key."
     />
-
-    <!-- Inline SVG favicon: no binary asset, no extra request.
-
-         IT IS A HAND WITH SIX FINGERS, and the sixth is the whole point. The
-         site's payload is the one thing every practitioner has seen — that AI
-         cannot draw hands — so the tab carries the tell itself rather than a
-         monogram. DESIGN.md section 9 calls this the insider test: legible as a
-         gag to the audience who has generated a malformed hand, and to everyone
-         else just a hand, which is a stranger thing to find in a tab than a
-         letter and is the reason to click it.
-
-         Drawn for the sizes it is actually rendered at, not for the artboard.
-         Six digits are countable from 32px up, which is what a Chrome tab
-         rasterises on a 2x display; at a true 16px it holds as a splayed hand
-         and nothing more, which is the correct thing to degrade to. One digit
-         doglegs at the tip, because an unsettling hand is not a hand with a
-         spare finger neatly attached.
-
-         Palette is the SITE's, and that is the bug this replaces. It was a
-         Cream letter F on warm Ink, with a comment claiming it inherited the
-         app's palette. True when written; the site moved to neutral greys
-         (index.css line 38 marks the ground "Neutral, not the app's warm Ink")
-         and the favicon did not follow, so the one brown object on the page was
-         the icon in the tab. -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0b0e'/%3E%3Cg stroke='%23f4f4f5' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M15.5 25.5 L4.5 19.6'/%3E%3Cpath d='M15.5 25.5 L6.2 10.4'/%3E%3Cpath d='M15.5 25.5 L10.7 5.4'/%3E%3Cpath d='M15.5 25.5 L15.9 4.2'/%3E%3Cpath d='M15.5 25.5 L21.5 8.4 L19.3 5.0'/%3E%3Cpath d='M15.5 25.5 L26.6 12.2'/%3E%3C/g%3E%3Crect x='9.8' y='21.4' width='11.6' height='11' rx='4.2' fill='%23f4f4f5'/%3E%3C/svg%3E"
+    <meta name="twitter:image" content="https://www.divineconstruc.com/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Fate, over a six-fingered hand: a workspace your coding agent already knows how to use."
     />
+
+    <!-- THE ICONS ARE REAL FILES NOW, and that is the fix rather than a
+         detail of it. This was a single `rel="icon"` holding an inline
+         data:image/svg+xml URI: no request, no binary asset, and invisible to
+         every consumer that does not run the page. ChatGPT, Discord, Slack and
+         iMessage read the markup and then GET a URL; several skip the markup
+         and GET /favicon.ico blindly. A data: URI gives all of them nothing,
+         which is why the link previewed with no Fate icon.
+
+         The mark itself is unchanged — public/favicon.svg is that same
+         six-fingered hand, and every raster below is rendered from it by
+         art-src/icons.mjs. See the comment in the SVG for why it has six.
+
+         🔴 THESE PATHS MUST RESOLVE, AND A 404 HERE DOES NOT LOOK LIKE ONE.
+         Cloudflare Pages serves index.html with a 200 for any unmatched path,
+         so a mistyped icon URL returns HTML that a browser silently discards
+         and a crawler may cache as the icon. Verify with the content-type, not
+         the status code:
+           curl -sI https://www.divineconstruc.com/favicon.ico | grep -i type
+         image/x-icon is right; text/html means the file is not deployed.
+
+         Root-relative, never bare `favicon.ico`. The page is one route and the
+         only other URL that gets shared is /#waitlist, whose fragment never
+         reaches the server — but a relative path would still be the thing that
+         broke first if this page ever moves off /. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <!-- Preferred by every current browser: one vector for every tab size. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- The PNG rungs exist for the scrapers, not the browsers. Some take
+         neither ICO nor SVG and want a PNG they can thumbnail. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <!-- iOS home screen. No `sizes`: 180 is the only one we ship and iOS
+         downsamples it for the smaller slots. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

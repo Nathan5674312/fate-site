@@ -1,0 +1,32 @@
+<!--
+  THE MARK. A hand with six fingers, and the sixth is the whole point — the
+  site's payload is the one thing every practitioner has seen, that AI cannot
+  draw hands, so the tab carries the tell itself rather than a monogram.
+  DESIGN.md section 9 calls this the insider test.
+
+  This file is the SOURCE for every icon in public/: favicon.ico,
+  apple-touch-icon.png and icon-512.png are all rendered from it by
+  art-src/icons.mjs. Edit here, then re-run that script — do not hand-edit a
+  PNG, it will drift from the tab icon.
+
+  Drawn for the sizes it is rendered at, not for the artboard. Six digits are
+  countable from 32px up, which is what a Chrome tab rasterises on a 2x
+  display; at a true 16px it holds as a splayed hand and nothing more, which is
+  the correct thing to degrade to. One digit doglegs at the tip, because an
+  unsettling hand is not a hand with a spare finger neatly attached.
+
+  Palette is the SITE's neutral greys (index.css line 38 marks the ground
+  "Neutral, not the app's warm Ink"), not the app's warm browns.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#0b0b0e"/>
+  <g stroke="#f4f4f5" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M15.5 25.5 L4.5 19.6"/>
+    <path d="M15.5 25.5 L6.2 10.4"/>
+    <path d="M15.5 25.5 L10.7 5.4"/>
+    <path d="M15.5 25.5 L15.9 4.2"/>
+    <path d="M15.5 25.5 L21.5 8.4 L19.3 5.0"/>
+    <path d="M15.5 25.5 L26.6 12.2"/>
+  </g>
+  <rect x="9.8" y="21.4" width="11.6" height="11" rx="4.2" fill="#f4f4f5"/>
+</svg>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One page. The #waitlist anchor is not listed: fragments are client-side
+     and a crawler never sees one, so it would be a duplicate of / with extra
+     steps. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.divineconstruc.com/</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+</urlset>
