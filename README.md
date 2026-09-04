@@ -80,11 +80,13 @@ Connect the repo in the Cloudflare dashboard (Pages → Create → Connect to Gi
 
 ## DNS
 
-The domain is served through Cloudflare Pages as a custom domain.
-`www` is canonical; the apex redirects to it.
+The domain is served through Cloudflare Pages as a custom domain. `www` is
+canonical; the apex redirects to it.
 
-The migration runbook - the zone's records, the mail provider, and the
-order to move them in - is kept out of this repo on purpose.
+The migration runbook — the current zone's records, the mail provider, and the
+order to move them in — is **kept out of this repo on purpose**. Publishing a
+live domain's mail topology alongside the account that administers it is a
+gift to whoever wants to spoof it. It lives in the private notes instead.
 
 ## Deliberately not here
 
