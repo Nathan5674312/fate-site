@@ -149,6 +149,10 @@ function Waitlist() {
     <div>
       <h2 className="font-display text-3xl text-sand sm:text-4xl">{WAITLIST.heading}</h2>
       <p className="mt-4 max-w-xl leading-relaxed text-clay">{WAITLIST.body}</p>
+      {/* The rule's second half, set smaller because it is a carve-out rather
+          than the rule. See the comment on bodyNote in content.ts for why it is
+          not simply the tail of the paragraph above. */}
+      <p className="mt-4 max-w-xl text-sm leading-relaxed text-clay">{WAITLIST.bodyNote}</p>
 
       {/* Unmounted once they are on the list, rather than disabled. A dead
           address field sitting above a live message box invites a second go at

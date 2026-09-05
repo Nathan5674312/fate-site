@@ -229,20 +229,53 @@ export const STATUS = {
  * something already promised for free.
  */
 export const WAITLIST = {
-  heading: 'What is coming, and what it will cost',
+  heading: 'What costs money to run, and what never will',
   /*
-   * THE WHOLE PAID TIER IS ONE LINE, AND SAYING IT AS A LINE IS THE POINT.
-   * Three features is a price list a reader has to keep straight; one boundary
-   * they can apply themselves to a feature nobody has thought of yet. It is
-   * also literally the rule DECISION 2 locked, rather than a summary of it.
+   * 🔴 THE LINE IS UPKEEP, AND IT IS SHARPER THAN THE ONE IT REPLACED.
+   *
+   * This said "anything that leaves your own network" until 2026-09-05, which
+   * was a decent proxy and the wrong rule. Nathan settled it as: whatever costs
+   * money to keep alive is what gets paid for. Geography was only ever standing
+   * in for that, because leaving the network is what happens to need a server.
+   *
+   * The refinement that makes it actually work is PER-USER. Some recurring
+   * costs do not scale: an Apple Developer account is $99/yr whether ten people
+   * or a hundred thousand run the app, and a code-signing certificate is the
+   * same. Those are the cost of shipping the free thing and they stay absorbed
+   * — paywalling them would mean charging for "runs on a Mac" and "does not
+   * trip SmartScreen", which is charging for the product being finished.
+   *
+   * What a subscription can honestly fund is the bill that grows with each
+   * person, each gigabyte and each device left online. That distinction is the
+   * whole section, and `05 - Real-Time Collaboration` §2 already makes it:
+   * "$5/mo is not the real cost. The real cost is that a rendezvous needs an
+   * account to be useful, an account needs signup, recovery, abuse handling and
+   * support, and every one of those is a permanent obligation."
+   *
+   * NO NUMBER, still. `12 - Website and Domain` keeps pricing on the enforced
+   * leave-off list because there is none, so the page says that outright rather
+   * than leaving a reader to wonder what was being hidden.
    */
   body:
-    'None of this exists today. The line is the same for all of it, and it is a cost line ' +
-    'rather than a marketing one: two devices on your own wifi can find each other with ' +
-    'nothing in the middle, so that stays free and needs no account. The moment something ' +
-    'has to cross the internet it needs a relay and an identity, and an account is not a ' +
-    'toggle — it is signup, recovery, abuse handling and support, forever. That is what the ' +
-    'paid tier pays for. Tick what you would actually pay for; it is the only way I find out.',
+    'None of this exists yet. The rule for what will cost money is upkeep, not features: ' +
+    'everything Fate does today runs on hardware you already own, so it costs nothing to ' +
+    'keep alive and it stays free — a permanent answer, not an introductory one. What ' +
+    'follows needs a machine of mine to stay online, and those bills grow with every ' +
+    'person, every gigabyte and every device left connected.',
+  /*
+   * The carve-out, split off the paragraph above on purpose. It is the second
+   * half of the rule and it is genuinely a footnote, so it reads as one - and
+   * nine lines of body landing on the lit palm was the single hardest thing on
+   * the page to read. Two short blocks over this art beat one long one; that is
+   * the same finding as the 2026-09-03 readability report, applied to length
+   * rather than to colour.
+   */
+  bodyNote:
+    'Costs that do not grow that way stay mine. A signing certificate and a developer ' +
+    'account cost the same whether ten people run this or a hundred thousand, so they are ' +
+    'the price of shipping the free thing — a Mac build and a build that does not trip ' +
+    'SmartScreen will not be sold back to you as features. And there is no price yet. I am ' +
+    'not going to invent one to fill this space.',
   /*
    * EVERY PAID FEATURE, not a sample of them — the list is closed and it comes
    * from §3 of `05 - Real-Time Collaboration`, whose table sorts each goal by
@@ -263,24 +296,26 @@ export const WAITLIST = {
       key: 'sync',
       label: 'Sync away from your own network',
       body:
-        'The same vault on every device, wherever you are. Pairing two devices on one wifi ' +
-        'stays free and needs no account — this is the half that has to cross the internet.',
+        'The same vault on every device, wherever you are. Two devices on one wifi can find ' +
+        'each other with nothing in between, so that half is free permanently. The other half ' +
+        'parks your notes on a relay, and a relay is rented by the gigabyte and by the month.',
     },
     {
       key: 'sharing',
       label: 'Sharing a note with someone who is not you',
       body:
-        'Handing a note or a folder to another person, with permissions, over the internet. ' +
-        'Sending a file to your own phone across your own wifi is the free case; this one ' +
-        'needs to know who someone is, and knowing who someone is means an account.',
+        'Handing a note or a folder to another person, with permissions. The upkeep here is ' +
+        'not storage, it is identity: knowing who someone is means accounts, and accounts ' +
+        'mean signup, recovery, abuse handling and support for as long as they exist.',
     },
     {
       key: 'multiplayer',
       label: 'Two people in one document at once',
       body:
-        'Both of you editing the same note and seeing each other do it. Today saving is ' +
-        'last-write-wins behind a modified-time guard, so this needs a server and a CRDT — ' +
-        'and on one wifi it is planned to be free, because there is nothing in the middle.',
+        'Both of you editing one note and seeing each other do it. Across one wifi there is ' +
+        'nothing in the middle and it is meant to stay free. Anywhere else needs a server to ' +
+        'introduce the two of you and to relay whatever cannot connect directly, billed per ' +
+        'message — plus a CRDT, because today saving is last-write-wins behind a time guard.',
     },
   ],
   placeholder: 'you@example.com',
