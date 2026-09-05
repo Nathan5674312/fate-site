@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BRAND, CLAIMS, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
+import { BRAND, CLAIMS, DOWNLOAD, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 import { usePageMotion } from './motion'
 
@@ -67,6 +67,15 @@ function Waitlist() {
   const [email, setEmail] = useState('')
   const [state, setState] = useState<FormState>('idle')
   const [token, setToken] = useState<string | null>(null)
+  /*
+   * Which coming features they ticked. Plain state rather than reading the DOM
+   * on submit, and no default: pre-ticking either box would put words in
+   * someone's mouth and this column exists to be believed.
+   *
+   * Nothing ticked is a valid signup. The endpoint stores null and the address
+   * is still on the list - the ticks are the signal, the address is the point.
+   */
+  const [wants, setWants] = useState<string[]>([])
 
   const [note, setNote] = useState('')
   const [noteState, setNoteState] = useState<NoteState>('idle')
@@ -89,7 +98,7 @@ function Waitlist() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, wants }),
       })
       if (res.status === 409) {
         setState('duplicate')
@@ -145,34 +154,108 @@ function Waitlist() {
           address field sitting above a live message box invites a second go at
           something that already worked. */}
       {!joined && (
-        <form onSubmit={submit} className="mt-8 flex flex-col gap-3 sm:flex-row" noValidate>
-          <label htmlFor="email" className="sr-only">
-            Email address
-          </label>
-          <input
-            id="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            required
-            value={email}
-            disabled={state === 'duplicate'}
-            placeholder={WAITLIST.placeholder}
-            onChange={(ev) => {
-              setEmail(ev.target.value)
-              // Clearing the error as they retype is the difference between a
-              // form that is talking to you and one that scolded you once.
-              if (state !== 'idle' && state !== 'sending') setState('idle')
-            }}
-            className="w-full rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60 sm:max-w-sm"
-          />
-          <button
-            type="submit"
-            disabled={state === 'sending' || state === 'duplicate'}
-            className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {state === 'sending' ? '…' : WAITLIST.button}
-          </button>
+        <form onSubmit={submit} className="mt-8" noValidate>
+          {/*
+            * THE TWO FEATURES, AS CHECKBOXES INSIDE THE FORM RATHER THAN BESIDE
+            * IT. They are part of the same answer, so they unmount with it and
+            * submit with it — a live checkbox left standing over a dead form
+            * would look like something still worth ticking.
+            *
+            * A fieldset with a legend, not a div with a heading. The legend is
+            * what makes a screen reader read "Sync away from your own network,
+            * checkbox, 1 of 2" INSIDE a named group; a heading above loose
+            * checkboxes reads as two unrelated questions.
+            *
+            * `data-anim-item` on each so the motion layer staggers them the way
+            * it staggers every other list on the page.
+            */}
+          <fieldset className="border-0 p-0">
+            <legend className="sr-only">{WAITLIST.heading}</legend>
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {WAITLIST.features.map((f) => (
+                <li key={f.key} data-anim-item>
+                  {/*
+                    * `h-full` on the label, not on the li: the li already
+                    * stretches to the grid row, but the label is what draws the
+                    * border, so without it the two boxes end at different
+                    * heights whenever one body wraps to an extra line.
+                    *
+                    * bg-bistre/90 rather than /60. These are the only opaque
+                    * panels on the page and that is deliberate — a checkbox is
+                    * a decision, and the label has to be readable while a lit
+                    * palm is behind it. They are small enough not to be the
+                    * plate that index.css rules out; that objection was about a
+                    * full-width panel covering the fingertips.
+                    */}
+                  <label
+                    htmlFor={`want-${f.key}`}
+                    className="flex h-full cursor-pointer gap-3 rounded-md border border-coffee bg-bistre/90 p-4 transition-colors hover:border-tan/40"
+                  >
+                    <input
+                      id={`want-${f.key}`}
+                      type="checkbox"
+                      checked={wants.includes(f.key)}
+                      onChange={(ev) =>
+                        setWants((prev) =>
+                          ev.target.checked
+                            ? [...prev, f.key]
+                            : prev.filter((k) => k !== f.key),
+                        )
+                      }
+                      className="mt-1 size-4 shrink-0 accent-cream"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-sand">{f.label}</span>
+                      <span className="mt-1 block text-sm leading-relaxed text-clay">
+                        {f.body}
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <label htmlFor="email" className="sr-only">
+              Email address
+            </label>
+            <input
+              id="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              value={email}
+              disabled={state === 'duplicate'}
+              placeholder={WAITLIST.placeholder}
+              onChange={(ev) => {
+                setEmail(ev.target.value)
+                // Clearing the error as they retype is the difference between a
+                // form that is talking to you and one that scolded you once.
+                if (state !== 'idle' && state !== 'sending') setState('idle')
+              }}
+              className="w-full rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe disabled:opacity-60 sm:max-w-sm"
+            />
+            <button
+              type="submit"
+              disabled={state === 'sending' || state === 'duplicate'}
+              data-solid
+              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {state === 'sending' ? '…' : WAITLIST.button}
+            </button>
+          </div>
+
+          {/* The promise, under the field rather than inside it. Same reason as
+              `messageNote` below: a placeholder is wiped by the first keystroke,
+              which deletes the promise exactly as someone acts on it.
+
+              Clay, not taupe. index.css reserves taupe for metadata and this is
+              a commitment someone is about to act on - the same correction the
+              hands note took on 2026-09-03, for the same reason: it crosses the
+              hands and taupe is #5c5c63. */}
+          <p className="mt-3 max-w-xl text-sm text-clay">{WAITLIST.promise}</p>
         </form>
       )}
 
@@ -208,7 +291,11 @@ function Waitlist() {
             onChange={(ev) => setNote(ev.target.value)}
             className="mt-2 w-full resize-y rounded-md border border-coffee bg-bistre px-4 py-3 text-sand placeholder:text-taupe"
           />
-          <p id="founder-message-note" className="mt-2 text-sm text-taupe">
+          {/* Clay, not taupe, for the third time on this page and the same
+              reason each time: taupe is #5c5c63, index.css reserves it for
+              metadata, and this one lands on a lit palm where it was close to
+              invisible. It is also the strongest promise the page makes. */}
+          <p id="founder-message-note" className="mt-2 text-sm text-clay">
             {WAITLIST.messageNote}
           </p>
           <button
@@ -239,11 +326,14 @@ export default function App() {
 
   return (
     <div ref={root}>
+      {/* Points at the download since 2026-09-05, because that is now the
+          primary action. A skip link that lands on the secondary CTA makes a
+          keyboard user tab past the thing everyone else clicks first. */}
       <a
-        href="#waitlist"
+        href="#download"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-10 focus:rounded focus:bg-cream focus:px-4 focus:py-2 focus:text-ink"
       >
-        Skip to the waitlist
+        Skip to the download
       </a>
 
       {/*
@@ -329,17 +419,35 @@ export default function App() {
           >
             {HERO.sub}
           </p>
-          <div
-            data-anim="hero-cta"
-            className="relative mt-9 flex flex-wrap items-center gap-4"
-          >
-            <a
-              href="#waitlist"
-              className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
-            >
-              {HERO.cta}
-            </a>
-            <span className="text-sm text-taupe">{HERO.ctaNote}</span>
+          <div data-anim="hero-cta" className="relative mt-9">
+            <div className="flex flex-wrap items-center gap-5">
+              <a
+                href={DOWNLOAD.url}
+                data-solid
+                className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
+              >
+                {HERO.cta}
+              </a>
+              {/* The second door. Someone on a Mac, or someone the download does
+                  not answer, needs somewhere to go that is not nowhere. */}
+              <a
+                href="#waitlist"
+                className="text-sm text-clay underline underline-offset-4 hover:text-sand"
+              >
+                {HERO.secondaryCta}
+              </a>
+            </div>
+            {/*
+              * Its own line under the buttons, and clay rather than taupe.
+              *
+              * Both for the same reason: on one row with the two CTAs it ran
+              * out past the radial plate and sat directly on the hands, where
+              * taupe (#5c5c63) is not readable. index.css reserves taupe for
+              * metadata anyway, and this is the qualifier on the button - the
+              * thing a Mac user has to read BEFORE clicking, not after. Same
+              * correction the hands note took on 2026-09-03.
+              */}
+            <p className="mt-4 text-sm text-clay">{HERO.ctaNote}</p>
           </div>
         </div>
       </section>
@@ -352,6 +460,37 @@ export default function App() {
               <li key={c.title} data-anim-item>
                 <h2 className="font-display text-xl text-sand">{c.title}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-clay">{c.body}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        {/* DOWNLOAD */}
+        <Section id="download">
+          <h2 className="font-display text-3xl text-sand sm:text-4xl">{DOWNLOAD.heading}</h2>
+          <p className="mt-4 max-w-xl leading-relaxed text-clay">{DOWNLOAD.body}</p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <a
+              href={DOWNLOAD.url}
+              data-solid
+                className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
+            >
+              {DOWNLOAD.cta}
+            </a>
+            <a
+              href={DOWNLOAD.url}
+              className="text-sm text-clay underline underline-offset-4 hover:text-sand"
+            >
+              {DOWNLOAD.urlLabel}
+            </a>
+          </div>
+          {/* The three things a first-time runner meets. Clay rather than taupe:
+              taupe is metadata-only per index.css and the SmartScreen line is
+              an instruction, not decoration. */}
+          <ul className="mt-8 space-y-3">
+            {DOWNLOAD.notes.map((nte) => (
+              <li key={nte} data-anim-item className="text-sm leading-relaxed text-clay">
+                {nte}
               </li>
             ))}
           </ul>

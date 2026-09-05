@@ -44,6 +44,22 @@ const MAX_EMAIL = 254
 const MAX_MESSAGE = 2000
 
 /**
+ * The coming paid features someone can tick, and the ONLY values that reach the
+ * database.
+ *
+ * A fixed set rather than storing whatever arrives: this column is read by a
+ * human deciding what to build next, so an open text field would let anyone
+ * posting straight at this path write arbitrary strings into the answer. It
+ * also keeps the column groupable - `WHERE wants LIKE '%sync%'` means something
+ * only while the vocabulary is closed.
+ *
+ * Must stay in step with WAITLIST.features in src/content.ts, which is where
+ * the checkboxes come from. A key added there and not here is silently dropped
+ * as unknown; a key here and not there is simply never sent.
+ */
+const FEATURE_KEYS = ['sync', 'multiplayer'] as const
+
+/**
  * ONE handler with an explicit method check, rather than exporting
  * `onRequestPost` alone.
  *
@@ -98,6 +114,15 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const ref = new URL(request.url).searchParams.get('ref')
 
   /*
+   * Which coming features they ticked. Optional in every direction: absent,
+   * empty, or not an array all mean "ticked nothing", which is a normal signup
+   * and not a 400 - the address is what this list needs and the ticks are the
+   * signal on top of it. Unknown keys are DROPPED rather than rejected, so a
+   * stale cached page whose checkbox names moved on still signs its visitor up.
+   */
+  const wants = readWants(fields.wants)
+
+  /*
    * Unguessable, and stored rather than signed. A random 128-bit value compared
    * against the column needs no secret to be provisioned, no HMAC, and no key
    * rotation story — three things that can be misconfigured — and it is exactly
@@ -112,9 +137,9 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
      * primary key be the thing that decides, and read the failure.
      */
     await env.DB.prepare(
-      'INSERT INTO waitlist (email, created_at, ref, token) VALUES (?, ?, ?, ?)',
+      'INSERT INTO waitlist (email, created_at, ref, token, wants) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(email, new Date().toISOString(), ref, token)
+      .bind(email, new Date().toISOString(), ref, token, wants)
       .run()
   } catch (e) {
     /*
@@ -168,6 +193,20 @@ async function attachMessage(fields: Record<string, unknown>, env: Env): Promise
   }
 
   return json({ ok: true }, 200)
+}
+
+/**
+ * The ticked features, as a comma-separated string, or null for none.
+ *
+ * Filtered against FEATURE_KEYS and de-duplicated, so the column can only ever
+ * hold a known vocabulary and cannot hold `sync,sync`. Null rather than '' when
+ * empty, matching how `message` is stored - "ticked something" is then
+ * `wants IS NOT NULL` and does not also have to test for the empty string.
+ */
+export function readWants(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null
+  const picked = FEATURE_KEYS.filter((k) => raw.includes(k))
+  return picked.length ? picked.join(',') : null
 }
 
 function json(data: unknown, status: number, extra: Record<string, string> = {}): Response {

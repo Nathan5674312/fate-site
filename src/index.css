@@ -183,12 +183,26 @@ body {
 }
 
 /*
- * The halo above inherits, and the hero CTA is the one place inside those
+ * The halo above inherits, and a SOLID button is the one place inside those
  * containers where the text is NOT on the ground colour: it is ink on cream.
  * An ink halo around ink glyphs on a light button reads as a black glow, not
  * as contrast. Nothing sits behind a solid button either, so it never needed
  * the halo in the first place.
+ *
+ * 🔴 THE SELECTOR IS `[data-solid]` AND NOT `[data-anim='hero-cta'] a`, WHICH
+ * IS WHAT IT SAID UNTIL 2026-09-05. That version was wrong in both directions
+ * and both were visible on screen:
+ *
+ *   - It MISSED every solid button outside the hero. The waitlist's Join has
+ *     always carried the black glow, and the new download button picked it up
+ *     the moment that section was added.
+ *   - It OVER-MATCHED once the hero grew a second link. "What is coming" is
+ *     clay on the ground, over the hands, and it is exactly the text the halo
+ *     exists for - stripping it was a legibility loss, not a fix.
+ *
+ * Marking the button rather than its position is what makes both stop being
+ * possible: the rule now follows the thing it is actually about.
  */
-[data-anim='hero-cta'] a {
+[data-solid] {
   text-shadow: none;
 }

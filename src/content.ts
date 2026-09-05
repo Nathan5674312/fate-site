@@ -39,9 +39,54 @@ export const HERO = {
   sub:
     'Point Claude, Codex or Gemini at the folder. It works out what this is and how to ' +
     'use it on its own — no plugin, no API key, no configuration.',
-  cta: 'Join the waitlist',
-  /* Honest, and load-bearing: it sets the expectation the waitlist implies. */
-  ctaNote: 'No installer yet. One email when there is one.',
+  /*
+   * THE DOWNLOAD IS THE PRIMARY CTA NOW, and that is the change the roadmap
+   * note `12 - Website and Domain` §5 predicted: the waitlist held this slot
+   * only "until there is something to download". There is - v1.0.0 shipped
+   * 2026-09-02 and the releases page has carried Windows binaries since.
+   *
+   * The waitlist did not go away, it changed subject. It is now the list for
+   * the paid tier (see WAITLIST below), which is a different promise and does
+   * not belong on the same button.
+   */
+  cta: 'Download for Windows',
+  /* Honest, and load-bearing: it sets the expectation the button implies. Free
+     and account-free are both true today and are the whole pitch; Windows-only
+     is the limit someone on a Mac needs before they click, not after. */
+  ctaNote: 'Free, no account. Windows only.',
+  /* The second door, for someone the download does not answer. */
+  secondaryCta: 'What is coming',
+} as const
+
+/**
+ * THE DOWNLOAD. Everything here is checkable against the releases page, which
+ * is the point - this section is the one that would cost the most trust to
+ * overstate, because a reader can be disproved by the file they just ran.
+ *
+ * 🔴 NO VERSION NUMBER ON THE PAGE, DELIBERATELY. The link is GitHub's
+ * `/releases/latest`, which never goes stale; a hardcoded `1.0.5` here would be
+ * wrong the next time a release is cut and nobody would notice, because a
+ * stale number does not break a build. Same reason there is no direct link to
+ * the .exe: GitHub's asset URLs carry the version in the filename, so a direct
+ * link is a maintenance obligation and the releases page is not.
+ *
+ * `notes` are the three things a first-time runner actually hits, and the
+ * SmartScreen one is there because it is what an unsigned build does. Someone
+ * who meets that warning without being told is entitled to assume the worst.
+ */
+export const DOWNLOAD = {
+  heading: 'Get it',
+  body:
+    'Fate is free, needs no account, and sends nothing anywhere. Two files on the ' +
+    'releases page: an installer, or a portable zip that runs from a folder.',
+  cta: 'Download for Windows',
+  url: 'https://github.com/Nathan5674312/agent-workspace/releases/latest',
+  urlLabel: 'github.com/Nathan5674312/agent-workspace/releases',
+  notes: [
+    'Windows only. The macOS and Linux builds are configured and have never been built.',
+    'The builds are unsigned, so Windows SmartScreen warns the first time. More info → Run anyway.',
+    'It tells you when a new version exists and shows you what changed before you take it.',
+  ],
 } as const
 
 /**
@@ -80,27 +125,85 @@ export const STATUS = {
   heading: 'Where it actually is',
   intro:
     'Fate is being built in the open and is not finished. This is what is true today, ' +
-    'so the waitlist is not a surprise later.',
+    'so nothing below the download is a surprise later.',
   built: [
+    'A Windows build you can download and run today, installer or portable',
     'Markdown vault: read, edit, save, with backups and a lost-update guard',
     'Canvas boards that double as runnable agent pipelines',
     'A graph over real wikilinks, and a database view over frontmatter',
     'Daily notes and a calendar planner over the whole vault',
   ],
+  /*
+   * 🔴 "No installer yet" LIVED HERE UNTIL 2026-09-05 AND IS NOW FALSE. It was
+   * true when this file was written and stopped being true when v1.0.0 shipped
+   * on 2026-09-02. Left in place it would have been the page's single worst
+   * line: the honesty rule earns its keep by being checkable, and a reader who
+   * catches this block understating the product stops believing it overstating
+   * nothing. If a claim here goes stale again, that is the one to fix first.
+   */
   notBuilt: [
-    'No installer yet — you cannot download and run it today',
-    'No sync, no collaboration, no mobile app',
-    'Windows is the only desktop that has actually been run',
+    'No sync and no collaboration — see below, and neither exists yet',
+    'Windows only. macOS and Linux are configured targets that have never been built',
+    'The builds are unsigned, so Windows warns the first time you run one',
+    'No mobile app',
   ],
 } as const
 
+/**
+ * THE WAITLIST CHANGED SUBJECT ON 2026-09-05, IT DID NOT MOVE.
+ *
+ * It used to mean "tell me when there is something to install". There is
+ * something to install, so that list is finished and this one is a different
+ * promise: the paid tier that does not exist yet. Same table, same endpoint,
+ * same two-step form - only the subject and one column are new.
+ *
+ * 🔴 NO PRICE, AND THAT IS ENFORCED RATHER THAN UNFINISHED. `12 - Website and
+ * Domain` lists pricing under "what to leave off - still enforced", because
+ * there is none: DECISION 2 sequences the free product first and the backend
+ * only once there are users. Saying "paid" without a number is the honest
+ * state. Putting a number here would be inventing one.
+ *
+ * 🔴 SYNC IS NOT WHOLLY PAID AND THE COPY MUST NOT SAY IT IS. DECISION 2 in
+ * `08 - Product Definition and Decisions` is locked: free is local-network
+ * pairing with no account and no backend, Pro is the away-from-home case. So
+ * the feature below is worded as sync AWAY FROM your own network. A rewrite to
+ * a flat "sync is a paid feature" contradicts a locked decision and takes back
+ * something already promised for free.
+ */
 export const WAITLIST = {
-  heading: 'Get told once',
+  heading: 'What is coming, and what it will cost',
   body:
-    'One email when there is something to install. No newsletter, no drip sequence, ' +
-    'no sharing the address with anyone.',
+    'Neither of these exists today. Both need a server, which is the first thing in ' +
+    'Fate that will cost money to run, so both will sit in a paid tier — the app ' +
+    'itself stays free and account-free. Tick what you would actually pay for.',
+  /*
+   * The two features, and the `key` is what reaches the database. Adding one
+   * here is not enough on its own: FEATURE_KEYS in functions/api/waitlist.ts
+   * is the guard, and an unknown key is rejected there rather than stored.
+   */
+  features: [
+    {
+      key: 'sync',
+      label: 'Sync away from your own network',
+      body:
+        'The same vault on every device, wherever you are. Pairing two devices on one ' +
+        'network is planned to stay free and to need no account; this is the other half.',
+    },
+    {
+      key: 'multiplayer',
+      label: 'More than one person in the same document',
+      body:
+        'Two people editing one note at once and seeing each other do it. Today saving is ' +
+        'last-write-wins behind a modified-time guard, so this needs a server and a CRDT.',
+    },
+  ],
   placeholder: 'you@example.com',
   button: 'Join',
+  /* The promise, kept from the old list because it is the reason people give an
+     address at all. Unchanged in substance: one email, no list, no sharing. */
+  promise:
+    'One email when one of these is real. No newsletter, no drip sequence, no sharing ' +
+    'the address with anyone.',
   /*
    * The optional note to the founder.
    *
@@ -115,8 +218,8 @@ export const WAITLIST = {
   messageOptional: 'optional',
   messagePlaceholder: 'What are you building? What do you need it to do?',
   messageNote:
-    'I read every one of these myself, and when the drop date comes I will write ' +
-    'to each person here personally.',
+    'I read every one of these myself, and when one of these ships I will write to ' +
+    'each person here personally.',
   messageButton: 'Send',
   /* The note step's own outcomes. Separate from `states` because by this point
      the address is already saved — none of these can mean the signup failed. */
@@ -127,7 +230,7 @@ export const WAITLIST = {
   },
   /* Every state the form can be in, so no component invents a string. */
   states: {
-    ok: 'You are on the list. That is the last you will hear until there is a build.',
+    ok: 'You are on the list. That is the last you will hear until one of these is real.',
     duplicate: 'Already on the list — nothing more to do.',
     invalid: 'That does not look like an email address.',
     error: 'Something went wrong saving that. Try again in a moment.',
@@ -135,7 +238,10 @@ export const WAITLIST = {
 } as const
 
 export const LINKS = {
-  /* Real, public, and checked: this repo exists and is the trust signal. */
+  /* Real, public, and checked: this repo exists and is the trust signal. It is
+     the VAULT template, which is the product per DECISION 1 - not the app. The
+     app's repo is the one DOWNLOAD.url points at, and they are two repos on
+     purpose. */
   repo: 'https://github.com/Nathan5674312/fate',
   repoLabel: 'github.com/Nathan5674312/fate',
 } as const

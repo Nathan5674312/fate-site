@@ -17,7 +17,12 @@ CREATE TABLE IF NOT EXISTS waitlist (
   -- SECOND request - the optional message, sent after the address is already
   -- saved - prove it belongs to this row. Without it, knowing someone's address
   -- would be enough to attach a note to their name.
-  token      TEXT
+  token      TEXT,
+  -- Which of the coming paid features they ticked, comma-separated, from the
+  -- fixed set in FEATURE_KEYS (functions/api/waitlist.ts). NULL when they
+  -- ticked nothing, which is normal and not an error - the address is the
+  -- thing this list needs and the ticks are the signal on top of it.
+  wants      TEXT
 );
 
 -- 🔴 THIS FILE IS ONLY RUN ON A FRESH DATABASE. `CREATE TABLE IF NOT EXISTS`
@@ -30,3 +35,12 @@ CREATE TABLE IF NOT EXISTS waitlist (
 --
 --   2026-09-01  ALTER TABLE waitlist ADD COLUMN message TEXT;   (applied)
 --   2026-09-01  ALTER TABLE waitlist ADD COLUMN token TEXT;     (applied)
+--   2026-09-05  ALTER TABLE waitlist ADD COLUMN wants TEXT;     (applied)
+--
+-- The 2026-09-05 line ran against the remote DB on 2026-09-05, before any
+-- deploy carrying the new INSERT. Verified after: pragma_table_info lists
+-- email, created_at, ref, message, token, wants, and the 8 existing rows were
+-- untouched with wants NULL on all of them. The command, for the next one:
+--
+--   npx wrangler d1 execute fate-waitlist --remote --command="ALTER TABLE waitlist ADD COLUMN wants TEXT;"
+
