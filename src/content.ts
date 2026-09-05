@@ -73,13 +73,17 @@ export const HERO = {
  * `notes` are the three things a first-time runner actually hits, and the
  * SmartScreen one is there because it is what an unsigned build does. Someone
  * who meets that warning without being told is entitled to assume the worst.
+ *
+ * There is no `cta` here any more. This section had a second solid button
+ * saying "Download for Windows" and pointing at the same URL as the hero's, and
+ * two identical buttons are not a choice - they are a thing a reader stops to
+ * compare. The hero keeps the button; this section keeps the readable URL.
  */
 export const DOWNLOAD = {
   heading: 'Get it',
   body:
     'Fate is free, needs no account, and sends nothing anywhere. Two files on the ' +
     'releases page: an installer, or a portable zip that runs from a folder.',
-  cta: 'Download for Windows',
   url: 'https://github.com/Nathan5674312/agent-workspace/releases/latest',
   urlLabel: 'github.com/Nathan5674312/agent-workspace/releases',
   notes: [
@@ -172,29 +176,55 @@ export const STATUS = {
  */
 export const WAITLIST = {
   heading: 'What is coming, and what it will cost',
-  body:
-    'Neither of these exists today. Both need a server, which is the first thing in ' +
-    'Fate that will cost money to run, so both will sit in a paid tier — the app ' +
-    'itself stays free and account-free. Tick what you would actually pay for.',
   /*
-   * The two features, and the `key` is what reaches the database. Adding one
-   * here is not enough on its own: FEATURE_KEYS in functions/api/waitlist.ts
-   * is the guard, and an unknown key is rejected there rather than stored.
+   * THE WHOLE PAID TIER IS ONE LINE, AND SAYING IT AS A LINE IS THE POINT.
+   * Three features is a price list a reader has to keep straight; one boundary
+   * they can apply themselves to a feature nobody has thought of yet. It is
+   * also literally the rule DECISION 2 locked, rather than a summary of it.
+   */
+  body:
+    'None of this exists today. The line is the same for all of it: on your own network ' +
+    'Fate is free and needs no account, because peer-to-peer over your own wifi costs ' +
+    'nothing to run. The moment something has to leave your network it needs a server ' +
+    'and an account, and that is the paid tier. Tick what you would actually pay for.',
+  /*
+   * EVERY PAID FEATURE, not a sample of them — the list is closed and it comes
+   * from §3 of `05 - Real-Time Collaboration`, whose table sorts each goal by
+   * whether it needs a server and an identity, plus DECISION 2 for sync.
+   *
+   * 🔴 THE QUALIFIERS ARE NOT PADDING, THEY ARE THE FREE/PAID LINE. Comments,
+   * LAN device pairing, and co-editing between two machines on one wifi are all
+   * on the FREE side of that table — "possible at $0", in its words. Drop
+   * "away from your own network" from the sync or multiplayer label and the
+   * page starts charging for something already promised free.
+   *
+   * `key` is what reaches the database, and adding one here is not enough on
+   * its own: FEATURE_KEYS in functions/api/waitlist.ts is the guard, and an
+   * unknown key is dropped there rather than stored.
    */
   features: [
     {
       key: 'sync',
       label: 'Sync away from your own network',
       body:
-        'The same vault on every device, wherever you are. Pairing two devices on one ' +
-        'network is planned to stay free and to need no account; this is the other half.',
+        'The same vault on every device, wherever you are. Pairing two devices on one wifi ' +
+        'stays free and needs no account — this is the half that has to cross the internet.',
+    },
+    {
+      key: 'sharing',
+      label: 'Sharing a note with someone who is not you',
+      body:
+        'Handing a note or a folder to another person, with permissions, over the internet. ' +
+        'Sending a file to your own phone on your own network is the free case and is ' +
+        'mostly built; this one needs identity, which is what an account is.',
     },
     {
       key: 'multiplayer',
-      label: 'More than one person in the same document',
+      label: 'Two people in one document at once',
       body:
-        'Two people editing one note at once and seeing each other do it. Today saving is ' +
-        'last-write-wins behind a modified-time guard, so this needs a server and a CRDT.',
+        'Both of you editing the same note and seeing each other do it. Today saving is ' +
+        'last-write-wins behind a modified-time guard, so this needs a server and a CRDT — ' +
+        'and on one wifi it is planned to be free, because there is nothing in the middle.',
     },
   ],
   placeholder: 'you@example.com',

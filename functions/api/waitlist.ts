@@ -57,7 +57,7 @@ const MAX_MESSAGE = 2000
  * the checkboxes come from. A key added there and not here is silently dropped
  * as unknown; a key here and not there is simply never sent.
  */
-const FEATURE_KEYS = ['sync', 'multiplayer'] as const
+const FEATURE_KEYS = ['sync', 'sharing', 'multiplayer'] as const
 
 /**
  * ONE handler with an explicit method check, rather than exporting

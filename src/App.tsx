@@ -171,7 +171,10 @@ function Waitlist() {
             */}
           <fieldset className="border-0 p-0">
             <legend className="sr-only">{WAITLIST.heading}</legend>
-            <ul className="grid gap-4 sm:grid-cols-2">
+            {/* Stacked, not a 2-up grid. Three items in two columns leaves an
+                orphan on the second row, and each of these carries two or three
+                lines of body that a half-width column squeezes into five. */}
+            <ul className="grid gap-4">
               {WAITLIST.features.map((f) => (
                 <li key={f.key} data-anim-item>
                   {/*
@@ -469,21 +472,22 @@ export default function App() {
         <Section id="download">
           <h2 className="font-display text-3xl text-sand sm:text-4xl">{DOWNLOAD.heading}</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-clay">{DOWNLOAD.body}</p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
+          {/*
+            * ONE DOWNLOAD BUTTON ON THE PAGE, AND IT IS THE ONE IN THE HERO.
+            * A second solid button here said exactly the same word and went to
+            * exactly the same URL, which does not give a reader a second choice
+            * - it makes them check whether they missed a difference. The link
+            * stays because a URL someone can read before clicking is worth
+            * more here than a button they already scrolled past.
+            */}
+          <p className="mt-8">
             <a
               href={DOWNLOAD.url}
-              data-solid
-                className="rounded-md bg-cream px-6 py-3 font-medium text-ink transition-opacity hover:opacity-90"
-            >
-              {DOWNLOAD.cta}
-            </a>
-            <a
-              href={DOWNLOAD.url}
-              className="text-sm text-clay underline underline-offset-4 hover:text-sand"
+              className="text-clay underline underline-offset-4 hover:text-sand"
             >
               {DOWNLOAD.urlLabel}
             </a>
-          </div>
+          </p>
           {/* The three things a first-time runner meets. Clay rather than taupe:
               taupe is metadata-only per index.css and the SmartScreen line is
               an instruction, not decoration. */}

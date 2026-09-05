@@ -17,8 +17,9 @@ const is = (label, got, want) => {
 }
 
 /* The ordinary answers. */
-is('both ticked', readWants(['sync', 'multiplayer']), 'sync,multiplayer')
-is('one ticked', readWants(['sync']), 'sync')
+is('all three ticked', readWants(['sync', 'sharing', 'multiplayer']), 'sync,sharing,multiplayer')
+is('two ticked', readWants(['sync', 'multiplayer']), 'sync,multiplayer')
+is('one ticked', readWants(['sharing']), 'sharing')
 
 /* Nothing ticked is a valid signup, and null rather than '' so the column can
    be read as `wants IS NOT NULL` without also testing for empty string. */
@@ -35,6 +36,6 @@ is('duplicates collapse', readWants(['sync', 'sync']), 'sync')
 
 /* Order comes from FEATURE_KEYS, not from the client, so two people who ticked
    the same pair are one group in a GROUP BY rather than two. */
-is('order is ours', readWants(['multiplayer', 'sync']), 'sync,multiplayer')
+is('order is ours', readWants(['multiplayer', 'sharing', 'sync']), 'sync,sharing,multiplayer')
 
 console.log(`  ${n}/${n} passed`)
