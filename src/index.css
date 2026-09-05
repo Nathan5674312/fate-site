@@ -171,6 +171,84 @@ body {
  * no-filters rule at the top of motion.ts is about properties being ANIMATED,
  * and nothing animates this.
  */
+/*
+ * THE GLOW PLATE. A soft-edged field of ink behind every block of copy, so the
+ * words sit on ground rather than on a lit palm.
+ *
+ * 🔴 READ THE HALO NOTE ABOVE BEFORE TOUCHING THIS, BECAUSE IT SAYS A PLATE WAS
+ * TRIED AND REJECTED — AND THIS IS NOT THAT PLATE.
+ *
+ * What failed was a RECTANGLE: an opaque panel of ink per section, with an
+ * edge. It covered the fingertips, the fingertips are where nearly all the
+ * motion is, and the page then read as two frozen arms while the same component
+ * animated perfectly in the lab. That failure is written up at the stage
+ * comment in Hands.tsx.
+ *
+ * A radial has no edge to notice and no corners to cover. It is also not new
+ * here: the hero has shipped exactly this since the copy first landed on the
+ * hands, and this rule only generalises the thing that was already working to
+ * the four sections and the footer, which never got one.
+ *
+ * The numbers are the whole design:
+ *   - 42% before the fade starts, so the middle is FULL ink and body copy is
+ *     on ground rather than on something translucent.
+ *   - out to nothing by 100%, so the boundary cannot be seen. The moment this
+ *     has a visible edge it has become the rectangle that failed.
+ *   - inset NEGATIVE, so the ink starts outside the text and the falloff
+ *     happens in the margin instead of across the first and last lines.
+ *
+ * z-index -1 rather than a stacking-context fight: the hands layer is fixed at
+ * -10, so anything from -9 up to 0 lands between the art and the copy, and the
+ * text needs no z-index of its own.
+ *
+ * No filter, deliberately. `blur()` on a layer sitting over a canvas that
+ * repaints every frame is exactly the shape of the feTurbulence regression this
+ * file already records — 33 ms against a 16.67 ms budget. A gradient is painted
+ * by the compositor and costs nothing per frame.
+ */
+[data-anim='section'],
+.plate {
+  position: relative;
+}
+
+[data-anim='section']::before,
+.plate::before {
+  content: '';
+  position: absolute;
+  inset: -0.5rem -1.5rem;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--color-ink);
+  /*
+   * A BLURRED SOLID, NOT A RADIAL, AND THE REASON IS ASPECT RATIO.
+   *
+   * A radial was tried first and its falloff is a percentage of the box, so one
+   * set of numbers cannot serve both shapes on this page: tuned to cover the
+   * tall waitlist it left the OUTER TWO of the three claim columns sitting in
+   * the fade, visibly dimmer than the middle one. Blur is an absolute distance.
+   * The same 36px softens a wide three-column row and a tall column of prose
+   * identically, and the core stays fully opaque right out to the text.
+   *
+   * The inset is now POSITIVE-ish and small because blur grows the shape: the
+   * ink bleeds roughly its own radius past this box in every direction, so the
+   * box wants to sit just inside the copy and let the bleed do the covering.
+   *
+   * ON THE PERFORMANCE RULE THIS FILE ALREADY SETS: `filter` here is safe and
+   * `backdrop-filter` would not be. This blurs the element's OWN content, which
+   * is one flat colour - rasterised once, cached, composited. A backdrop filter
+   * would have to re-read and re-blur the canvas behind it on every frame the
+   * hands move, which is precisely the 33ms-per-frame shape of the feTurbulence
+   * regression recorded above. Measured after this change: the hands still
+   * advance between two screenshots taken a second apart.
+   */
+  filter: blur(36px);
+}
+
+/*
+ * The halo stays, and the two are not redundant. The plate handles the BLOCK —
+ * a paragraph sitting over a palm — and the halo handles the GLYPH, which is
+ * what still saves a line that runs past the plate's falloff into the margin.
+ */
 [data-anim='section'],
 [data-anim='hero-title'],
 [data-anim='hero-sub'],

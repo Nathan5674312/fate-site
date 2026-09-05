@@ -552,7 +552,10 @@ export default function App() {
         </Section>
 
         {/* FOOTER */}
-        <footer className="mx-auto w-full max-w-3xl border-t border-coffee px-6 pt-10">
+        {/* `plate` because the footer is not a <Section> and so never got the
+            glow the rule gives the four that are. It crosses the hands like
+            everything else does. */}
+        <footer className="plate mx-auto w-full max-w-3xl border-t border-coffee px-6 pt-10">
           <p className="text-sm text-taupe">{FOOTER.madeBy}</p>
           <p className="mt-2 text-sm">
             <a href={LINKS.repo} className="text-clay underline underline-offset-4 hover:text-sand">
