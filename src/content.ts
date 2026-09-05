@@ -36,9 +36,23 @@ export const HERO = {
    * agent at this rather than filing notes in it.
    */
   headline: 'A workspace your coding agent already knows how to use.',
+  /*
+   * TWO SENTENCES NOW, BECAUSE THE SECOND ONE IS THE PRODUCT. The first is the
+   * mechanism and it was already here; the second is DECISION 3's core loop,
+   * which the page has never once mentioned. Skill lookup, then an interview,
+   * then skills written to disk that do the work next time - "a self-building
+   * skill factory" is how `08 - Product Definition and Decisions` names it, and
+   * it is the reason a near-empty vault is still worth downloading.
+   *
+   * "Roughly" is doing real work in that last clause. Nathan's own scope is
+   * ~80% of the manual labour, and the note says plainly that any feature
+   * promising full automation is overselling it. Do not round it up.
+   */
   sub:
-    'Point Claude, Codex or Gemini at the folder. It works out what this is and how to ' +
-    'use it on its own — no plugin, no API key, no configuration.',
+    'Point Claude, Codex or Gemini at the folder and it works out what this is on its own — ' +
+    'no plugin, no API key, nothing to configure. Then it interviews you about how you ' +
+    'actually work, writes the answers down as skills, and uses them to do roughly four ' +
+    'fifths of the repetitive part next time.',
   /*
    * THE DOWNLOAD IS THE PRIMARY CTA NOW, and that is the change the roadmap
    * note `12 - Website and Domain` §5 predicted: the waitlist held this slot
@@ -81,40 +95,73 @@ export const HERO = {
  */
 export const DOWNLOAD = {
   heading: 'Get it',
+  /*
+   * 🔴 "SENDS NOTHING ANYWHERE" LIVED HERE AND WAS RETIRED ON 2026-09-05,
+   * BEFORE ANYONE CAUGHT IT. It was written from a roadmap note measured on
+   * 2026-08-26, and v1.0.1 added a launch update check on 2026-09-04 — so by
+   * the time it shipped it was a flat claim with a documented exception.
+   *
+   * Nothing was hidden and nothing leaks: `src/main/update.ts` at v1.0.5 calls
+   * it "the only outbound request this app makes on its own behalf", a GET for
+   * a static JSON file with no query string, no identifier and no version
+   * header. But "sends nothing" and "makes one request that sends nothing" are
+   * different sentences, and on a page whose entire argument is that it does
+   * not lie to you about where your data goes, the difference is the argument.
+   * Say the specific thing. It is more convincing than the absolute one.
+   */
   body:
-    'Fate is free, needs no account, and sends nothing anywhere. Two files on the ' +
-    'releases page: an installer, or a portable zip that runs from a folder.',
+    'Free, no account, and nothing to sign up to. It makes exactly one request on its own ' +
+    'behalf: when it opens it asks GitHub whether a newer release exists — a plain GET for ' +
+    'a public file, no identifier, no version, no telemetry — and one click in the update ' +
+    'panel stops it asking for good. Everything else it does happens on your disk.',
   url: 'https://github.com/Nathan5674312/agent-workspace/releases/latest',
   urlLabel: 'github.com/Nathan5674312/agent-workspace/releases',
   notes: [
-    'Windows only. The macOS and Linux builds are configured and have never been built.',
-    'The builds are unsigned, so Windows SmartScreen warns the first time. More info → Run anyway.',
-    'It tells you when a new version exists and shows you what changed before you take it.',
+    'Two files: an installer, or a portable .zip that runs out of a folder without installing.',
+    'Windows only. The macOS and Linux targets are configured and have never once been built.',
+    'The builds are unsigned, so SmartScreen warns the first time — More info, then Run anyway.',
+    'When an update exists it shows you the changes, the files and the line counts before you take it.',
   ],
 } as const
 
 /**
  * The three claims. Each is checkable by the reader today, which is the bar the
  * roadmap note set ("three claims, each provable").
+ *
+ * 🔴 EACH BODY NAMES A MECHANISM OR A NUMBER, AND THAT IS THE WHOLE DEFENCE
+ * AGAINST THE ONE THING THIS PAGE IS MOST LIKELY TO BE MISTAKEN FOR.
+ * `Fate Site - Landing Page Research` §C5 measured seven competitor pages and
+ * found the same three icon cards under the fold on every one of them, then
+ * says where the AI-slop resemblance actually lives: "not the fold, everything
+ * under it." Three cards saying "local-first", "private" and "fast" IS that
+ * section. A syscall, a header and a dependency count are not, because nobody
+ * generates those and a reader can check every one of them.
+ *
+ * So: no adjective survives here unless a fact follows it. Everything asserted
+ * below was verified against the v1.0.5 tag on 2026-09-05, not taken from the
+ * roadmap note that claimed it.
  */
 export const CLAIMS = [
   {
     title: 'Plain markdown on disk',
     body:
-      'Every note is a .md file in a folder you chose. No database, no proprietary format, ' +
-      'nothing to export. Open the same folder in Obsidian and it works.',
+      'Every note is a .md file in a folder you picked. Saving writes a temp file and renames ' +
+      'it over the target, so a crash mid-write cannot leave you half a note, and the previous ' +
+      'copy stays in .backups/. Open the same folder in Obsidian and nothing has to be exported.',
   },
   {
     title: 'Works while it is closed',
     body:
-      'The product is the folder and its conventions, not a running process. An agent uses ' +
-      'the vault whether or not the app is open — the app is how you watch, not how it works.',
+      'The product is the folder and the conventions in it, not a running process. Every ' +
+      'feature is asked one question — does this help an agent that has never seen this vault, ' +
+      'while the app is shut? An agent works the vault either way; the app is how you watch.',
   },
   {
-    title: 'Bring your own agent',
+    title: 'It cannot phone home',
     body:
-      'Fate ships no model, handles no credential and proxies no request. You already have ' +
-      'Claude Code, Codex or Gemini authenticated; this is an addition to it.',
+      'Three runtime dependencies, and the window ships default-src none with connect-src none, ' +
+      'so the browser engine refuses a network call rather than the code promising not to make ' +
+      'one. The one request is asking GitHub if a version exists, and settings turn it off.',
   },
 ] as const
 
@@ -128,13 +175,17 @@ export const CLAIMS = [
 export const STATUS = {
   heading: 'Where it actually is',
   intro:
-    'Fate is being built in the open and is not finished. This is what is true today, ' +
-    'so nothing below the download is a surprise later.',
+    'Fate is being built in the open and is not finished. The list on the right is not ' +
+    'modesty — it is the same status field the app ships in its own roadmap, which anyone ' +
+    'who downloads it can read, so overstating anything here would be caught by the product ' +
+    'itself. Nothing below the download should be a surprise afterwards.',
   built: [
     'A Windows build you can download and run today, installer or portable',
-    'Markdown vault: read, edit, save, with backups and a lost-update guard',
-    'Canvas boards that double as runnable agent pipelines',
-    'A graph over real wikilinks, and a database view over frontmatter',
+    'Markdown notes with backups on every save and a guard against two writers clobbering each other',
+    'Canvas boards that are also runnable pipelines: cards are steps, arrows are the order',
+    'A graph built from the wikilinks you actually wrote, and a table over your frontmatter',
+    'Grouping that needs no tags: facets derived from folder, date and link neighbourhood',
+    'Version history — every save leaves the previous copy, and restore goes back through save',
     'Daily notes and a calendar planner over the whole vault',
   ],
   /*
@@ -146,10 +197,13 @@ export const STATUS = {
    * nothing. If a claim here goes stale again, that is the one to fix first.
    */
   notBuilt: [
-    'No sync and no collaboration — see below, and neither exists yet',
+    'No sync and no collaboration. Both are below, and neither has been started',
     'Windows only. macOS and Linux are configured targets that have never been built',
     'The builds are unsigned, so Windows warns the first time you run one',
-    'No mobile app',
+    'The agent can read the vault but not yet write to it — the tool list is Read, Glob and Grep',
+    'Search is still plain keyword matching, and there is no import from Notion or Evernote',
+    'Nothing prunes the version history, so it grows without limit until you clear it',
+    'No mobile app, and on iOS there never will be one that runs agents — no subprocesses',
   ],
 } as const
 
@@ -183,10 +237,12 @@ export const WAITLIST = {
    * also literally the rule DECISION 2 locked, rather than a summary of it.
    */
   body:
-    'None of this exists today. The line is the same for all of it: on your own network ' +
-    'Fate is free and needs no account, because peer-to-peer over your own wifi costs ' +
-    'nothing to run. The moment something has to leave your network it needs a server ' +
-    'and an account, and that is the paid tier. Tick what you would actually pay for.',
+    'None of this exists today. The line is the same for all of it, and it is a cost line ' +
+    'rather than a marketing one: two devices on your own wifi can find each other with ' +
+    'nothing in the middle, so that stays free and needs no account. The moment something ' +
+    'has to cross the internet it needs a relay and an identity, and an account is not a ' +
+    'toggle — it is signup, recovery, abuse handling and support, forever. That is what the ' +
+    'paid tier pays for. Tick what you would actually pay for; it is the only way I find out.',
   /*
    * EVERY PAID FEATURE, not a sample of them — the list is closed and it comes
    * from §3 of `05 - Real-Time Collaboration`, whose table sorts each goal by
@@ -215,8 +271,8 @@ export const WAITLIST = {
       label: 'Sharing a note with someone who is not you',
       body:
         'Handing a note or a folder to another person, with permissions, over the internet. ' +
-        'Sending a file to your own phone on your own network is the free case and is ' +
-        'mostly built; this one needs identity, which is what an account is.',
+        'Sending a file to your own phone across your own wifi is the free case; this one ' +
+        'needs to know who someone is, and knowing who someone is means an account.',
     },
     {
       key: 'multiplayer',
@@ -232,8 +288,9 @@ export const WAITLIST = {
   /* The promise, kept from the old list because it is the reason people give an
      address at all. Unchanged in substance: one email, no list, no sharing. */
   promise:
-    'One email when one of these is real. No newsletter, no drip sequence, no sharing ' +
-    'the address with anyone.',
+    'One email when one of these is real. No newsletter, no drip sequence, and the address ' +
+    'is not shared with anyone — it sits in a database on an account I own, not with a form ' +
+    'vendor, and the endpoint that stores it logs no IP and sets no cookie.',
   /*
    * The optional note to the founder.
    *
@@ -304,9 +361,10 @@ export const LINKS = {
  */
 export const HANDS = {
   note:
-    'Humans reach past themselves, and the machine has not troubled itself to ' +
-    'reach back. The hands behind this page are Michelangelo’s, recast — and ' +
-    'they never touch.',
+    'Humans reach past themselves, and the machine has not troubled itself to reach back. ' +
+    'The hands behind this page are Michelangelo’s, recast: the straining one with the ' +
+    'tendons up is ours, the limp one is the machine, and scrolling is what closes the gap ' +
+    'between them. They never touch. Fate is an argument about the part in between.',
 } as const
 
 export const FOOTER = {
