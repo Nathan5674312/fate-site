@@ -187,16 +187,19 @@ function Waitlist() {
                     * border, so without it the two boxes end at different
                     * heights whenever one body wraps to an extra line.
                     *
-                    * bg-bistre/90 rather than /60. These are the only opaque
-                    * panels on the page and that is deliberate — a checkbox is
-                    * a decision, and the label has to be readable while a lit
-                    * palm is behind it. They are small enough not to be the
-                    * plate that index.css rules out; that objection was about a
-                    * full-width panel covering the fingertips.
+                    * bg-bistre/72, between the /60 it started at and the /90
+                    * it briefly had. A checkbox is a decision, so the label has
+                    * to be readable with a lit palm behind it — but these sit
+                    * on top of the section plate, so they are the second layer
+                    * of ink over the same pixels and at /90 that stack read as
+                    * a solid card with the artwork switched off inside it.
+                    * They are small enough not to be the plate index.css rules
+                    * out; that objection was about a full-width panel covering
+                    * the fingertips.
                     */}
                   <label
                     htmlFor={`want-${f.key}`}
-                    className="flex h-full cursor-pointer gap-3 rounded-md border border-coffee bg-bistre/90 p-4 transition-colors hover:border-tan/40"
+                    className="flex h-full cursor-pointer gap-3 rounded-md border border-coffee bg-bistre/72 p-4 transition-colors hover:border-tan/40"
                   >
                     <input
                       id={`want-${f.key}`}
@@ -557,7 +560,21 @@ export default function App() {
             everything else does. */}
         <footer className="plate mx-auto w-full max-w-3xl border-t border-coffee px-6 pt-10">
           <p className="text-sm text-taupe">{FOOTER.madeBy}</p>
-          <p className="mt-2 text-sm">
+          {/* Contact before the repo link. Someone scrolling to the bottom of a
+              page about an unfinished product is usually looking for a person,
+              not a codebase — and a mailto is the one on this page that reaches
+              one. Clay rather than taupe because it is an invitation, and
+              index.css keeps taupe for metadata. */}
+          <p className="mt-4 text-sm text-clay">{FOOTER.contactLabel}</p>
+          <p className="mt-1 text-sm">
+            <a
+              href={`mailto:${FOOTER.email}`}
+              className="text-clay underline underline-offset-4 hover:text-sand"
+            >
+              {FOOTER.email}
+            </a>
+          </p>
+          <p className="mt-4 text-sm">
             <a href={LINKS.repo} className="text-clay underline underline-offset-4 hover:text-sand">
               {LINKS.repoLabel}
             </a>

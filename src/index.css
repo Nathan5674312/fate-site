@@ -218,7 +218,20 @@ body {
   inset: -0.5rem -1.5rem;
   z-index: -1;
   pointer-events: none;
-  background: var(--color-ink);
+  /*
+   * 76%, NOT SOLID. Nathan's balance: readable copy AND the hands still legible
+   * through it. At full ink the plate won the argument outright - every word
+   * was easy and the art behind the text was simply gone, which on a page whose
+   * whole fold is that artwork is trading the wrong thing away.
+   *
+   * The number is not arbitrary. The text is not relying on this alone: the
+   * glyph halo below still puts four stacked ink shadows around every letter,
+   * so the plate only has to knock the palm back far enough for the halo to
+   * finish the job. Those two together are what makes a partial plate enough.
+   * Drop this much further and the halo is doing all of it again, which is the
+   * state the 2026-09-03 readability report already found insufficient.
+   */
+  background: color-mix(in srgb, var(--color-ink) 76%, transparent);
   /*
    * A BLURRED SOLID, NOT A RADIAL, AND THE REASON IS ASPECT RATIO.
    *

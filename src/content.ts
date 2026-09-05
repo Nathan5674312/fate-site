@@ -404,5 +404,18 @@ export const HANDS = {
 
 export const FOOTER = {
   madeBy: `${BRAND.name} is made by ${BRAND.studio}.`,
+  /*
+   * THE CONTACT ADDRESS, and it is on the studio's own domain rather than the
+   * personal account address. That is not a style choice: the account address
+   * was deliberately removed from this repo's git history, and putting it on a
+   * public, crawlable page would undo that in one commit. Nathan supplied this
+   * one on 2026-09-05 when asked, and it is the only address that belongs here.
+   *
+   * `12 - Website and Domain` keeps "an unmonitored email address" on its
+   * leave-off list, so this is a promise as much as a link — if it stops being
+   * read, it should come off the page rather than sit here going nowhere.
+   */
+  contactLabel: 'Something to say, or something wrong on this page?',
+  email: 'nathaniel@divineconstruc.com',
   year: 2026,
 } as const
