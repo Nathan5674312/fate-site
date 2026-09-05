@@ -405,17 +405,18 @@ export const HANDS = {
 export const FOOTER = {
   madeBy: `${BRAND.name} is made by ${BRAND.studio}.`,
   /*
-   * THE CONTACT ADDRESS, and it is on the studio's own domain rather than the
-   * personal account address. That is not a style choice: the account address
-   * was deliberately removed from this repo's git history, and putting it on a
-   * public, crawlable page would undo that in one commit. Nathan supplied this
-   * one on 2026-09-05 when asked, and it is the only address that belongs here.
+   * 🔴 NO CONTACT ADDRESS HERE, AND THAT IS A DECISION RATHER THAN A GAP.
    *
-   * `12 - Website and Domain` keeps "an unmonitored email address" on its
-   * leave-off list, so this is a promise as much as a link — if it stops being
-   * read, it should come off the page rather than sit here going nowhere.
+   * One was added on 2026-09-05 and taken off the same day, on Nathan's call.
+   * The address he gave is the login for the Cloudflare account that
+   * administers this domain, and that is precisely the address this repo's
+   * history was rewritten with `git filter-repo` to remove: the risk recorded
+   * at the time was the admin account's address sitting in public next to an
+   * analysis of the domain's mail weaknesses.
+   *
+   * So if a contact route goes back on this page, it should be an alias that
+   * is NOT an account login anywhere — hello@ or contact@ forwarding onward.
+   * Do not reach for the obvious address just because it is the one on file.
    */
-  contactLabel: 'Something to say, or something wrong on this page?',
-  email: 'nathaniel@divineconstruc.com',
   year: 2026,
 } as const

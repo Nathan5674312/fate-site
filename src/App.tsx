@@ -560,21 +560,9 @@ export default function App() {
             everything else does. */}
         <footer className="plate mx-auto w-full max-w-3xl border-t border-coffee px-6 pt-10">
           <p className="text-sm text-taupe">{FOOTER.madeBy}</p>
-          {/* Contact before the repo link. Someone scrolling to the bottom of a
-              page about an unfinished product is usually looking for a person,
-              not a codebase — and a mailto is the one on this page that reaches
-              one. Clay rather than taupe because it is an invitation, and
-              index.css keeps taupe for metadata. */}
-          <p className="mt-4 text-sm text-clay">{FOOTER.contactLabel}</p>
-          <p className="mt-1 text-sm">
-            <a
-              href={`mailto:${FOOTER.email}`}
-              className="text-clay underline underline-offset-4 hover:text-sand"
-            >
-              {FOOTER.email}
-            </a>
-          </p>
-          <p className="mt-4 text-sm">
+          {/* No mailto here. See the FOOTER block in content.ts before adding
+              one back — which address it is matters more than whether. */}
+          <p className="mt-2 text-sm">
             <a href={LINKS.repo} className="text-clay underline underline-offset-4 hover:text-sand">
               {LINKS.repoLabel}
             </a>
