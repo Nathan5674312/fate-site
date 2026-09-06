@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Not found — Fate</title>
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#08080a" />
+    <meta name="robots" content="noindex" />
+
+    <!-- Cloudflare Pages serves this file, with a real 404 status, for any path
+         that matches no asset. Without it Pages hands back index.html at 200 and
+         a mistyped URL looks like a working page (see the icon note in
+         index.html, and the same trap in docs/DEPLOY.md).
+
+         DELIBERATELY STANDALONE. It loads no bundle and mounts no React, so it
+         does not pull the hands layer in behind it — the page is black, and it
+         still renders if the app build is broken, which is one of the ways a
+         visitor gets here in the first place. The two type families and the four
+         colour values below are copied from src/index.css rather than imported;
+         that is the whole cost of not shipping a bundle for one screen. -->
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Fraunces:opsz,wght@9..144,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --ink: #08080a;
+        --sand: #f4f4f5;
+        --clay: #b0b0b8;
+        --taupe: #5c5c63;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: grid;
+        place-content: center;
+        gap: 1.25rem;
+        padding: 2rem;
+        text-align: center;
+        background: var(--ink);
+        color: var(--clay);
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .code {
+        margin: 0;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--taupe);
+      }
+      h1 {
+        margin: 0;
+        font-family: 'Fraunces', ui-serif, Georgia, serif;
+        font-weight: 300;
+        font-size: clamp(2rem, 8vw, 3.5rem);
+        line-height: 1.05;
+        color: var(--sand);
+      }
+      p {
+        margin: 0;
+        max-width: 32ch;
+        margin-inline: auto;
+      }
+      a {
+        color: var(--sand);
+        text-decoration-color: var(--taupe);
+        text-underline-offset: 4px;
+      }
+      a:hover {
+        text-decoration-color: var(--sand);
+      }
+      /* Ink is the ground everywhere; the default ring vanishes against it. */
+      :focus-visible {
+        outline: 2px solid var(--sand);
+        outline-offset: 3px;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="code">404</p>
+    <h1>Nothing here.</h1>
+    <p>That page does not exist, or it never did.</p>
+    <p><a href="/">Back to Fate</a></p>
+  </body>
+</html>
