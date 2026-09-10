@@ -207,6 +207,98 @@ export const STATUS = {
   ],
 } as const
 
+/*
+ * Real, public, and checked: this repo exists and is the trust signal. It is
+ * the VAULT template, which is the product per DECISION 1 - not the app. The
+ * app's repo is the one DOWNLOAD.url points at, and they are two repos on
+ * purpose.
+ *
+ * ABOVE PROOF RATHER THAN DOWN BY THE FOOTER, where it used to sit, because
+ * PROOF's third item links it and a `const` cannot be read before it is
+ * declared. Inlining the URL a second time was the alternative and it is how
+ * one of the two copies eventually points somewhere that has moved.
+ */
+export const LINKS = {
+  repo: 'https://github.com/Nathan5674312/fate',
+  repoLabel: 'github.com/Nathan5674312/fate',
+} as const
+
+/**
+ * THE CASE STUDY, AND THE HONESTY RULE NEARLY KILLED IT.
+ *
+ * The landing-page checklist asks for one. There are no users, so the only
+ * available versions were an invented customer, a testimonial from nobody, or
+ * silence — and the first two are the exact failure this file exists to
+ * prevent. What broke the deadlock is that there IS one true case, confirmed by
+ * Nathan on 2026-09-09: the app and this page were both built by agents working
+ * a vault that follows these conventions.
+ *
+ * 🔴 EVERY ITEM NAMES A FILE IN A PUBLIC REPOSITORY, AND THAT IS THE ONLY
+ * REASON THIS SECTION IS ALLOWED ON THE PAGE. "We use our own product" is what
+ * every company says and no reader can check. A path, a repository and a quoted
+ * first line are checkable in under a minute, which is the same bar CLAIMS
+ * sets ("no adjective survives here unless a fact follows it"). If an item
+ * here ever stops naming something a stranger can open, delete the item.
+ *
+ * Verified 2026-09-09, each by fetching the public URL, not by remembering it:
+ * `Nathan5674312/fate` has AGENTS.md and _templates at its root;
+ * `agent-workspace/main/docs/AGENT-RELEASE.md` answers 200 and opens with the
+ * line quoted below; `fate-site/master/src/content.ts` answers 200 and contains
+ * seven vault-note citations. Re-check before editing any number here.
+ *
+ * 🔴 THE LIMIT IS PART OF THE SECTION, NOT A DISCLAIMER UNDER IT. A sample of
+ * one presented as evidence is the overstatement this audience punishes
+ * fastest, and it is also the honest thing: saying it costs nothing and buys
+ * the reader's trust in the three items above it.
+ */
+export const PROOF = {
+  heading: 'The only case study there is',
+  intro:
+    'There are no customers to write one about, so here is the one that exists. The app you ' +
+    'can download and the page you are reading were both built by an agent working a vault ' +
+    'that follows these conventions, with a human reviewing. That is a claim every company ' +
+    'makes, so all three repositories are public and each item below names the file you can ' +
+    'check it against.',
+  items: [
+    {
+      title: 'The copy is not in the page',
+      body:
+        'Every string a visitor sees lives in one file, src/content.ts, and its comments cite ' +
+        'the vault notes each claim was written from by name — 08 - Product Definition and ' +
+        'Decisions, 12 - Website and Domain — seven times over. The citations are the audit ' +
+        'trail: you can read the file and see which decision produced which sentence.',
+      href: 'https://github.com/Nathan5674312/fate-site/blob/master/src/content.ts',
+      hrefLabel: 'fate-site/src/content.ts',
+    },
+    {
+      title: 'The releases are cut from a checked-in procedure',
+      body:
+        'Shipping an update is not improvised. docs/AGENT-RELEASE.md in the app’s own ' +
+        'repository is the binding version rather than a summary, and it opens on the fact ' +
+        'the rest of it follows from: “A commit reaches nobody. A release reaches everybody.” ' +
+        'An agent reads it end to end before it is allowed to publish anything.',
+      href: 'https://github.com/Nathan5674312/agent-workspace/blob/main/docs/AGENT-RELEASE.md',
+      hrefLabel: 'agent-workspace/docs/AGENT-RELEASE.md',
+    },
+    {
+      title: 'The vault template is the one this was made in',
+      body:
+        'It is not a demo vault assembled for the repository. AGENTS.md, _templates, inbox, ' +
+        'tasks and wiki are the same shapes the work above ran on, which is also why the ' +
+        'product is the folder and the conventions rather than the app — an agent that has ' +
+        'never seen a vault needs the conventions, not a window.',
+      href: LINKS.repo,
+      hrefLabel: 'github.com/Nathan5674312/fate',
+    },
+  ],
+  /* Said in the section, not in small type beneath it. See the header. */
+  limit:
+    'One person, one vault, three repositories. That is the entire sample. There is no ' +
+    'customer here, no revenue and no second user, and a case study of one is exactly as ' +
+    'weak as that sounds. It is on the page because every part of it is checkable, not ' +
+    'because it is representative.',
+} as const
+
 /**
  * THE FAQ, AND IT IS HERE FOR THE CRAWLERS AS MUCH AS FOR THE READER.
  *
@@ -437,15 +529,6 @@ export const WAITLIST = {
     invalid: 'That does not look like an email address.',
     error: 'Something went wrong saving that. Try again in a moment.',
   },
-} as const
-
-export const LINKS = {
-  /* Real, public, and checked: this repo exists and is the trust signal. It is
-     the VAULT template, which is the product per DECISION 1 - not the app. The
-     app's repo is the one DOWNLOAD.url points at, and they are two repos on
-     purpose. */
-  repo: 'https://github.com/Nathan5674312/fate',
-  repoLabel: 'github.com/Nathan5674312/fate',
 } as const
 
 /**

@@ -1,5 +1,17 @@
 import { useRef, useState } from 'react'
-import { BRAND, CLAIMS, DOWNLOAD, FAQ, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
+import {
+  BRAND,
+  CLAIMS,
+  DOWNLOAD,
+  FAQ,
+  FOOTER,
+  HANDS,
+  HERO,
+  LINKS,
+  PROOF,
+  STATUS,
+  WAITLIST,
+} from './content'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 import { usePageMotion } from './motion'
 
@@ -540,6 +552,48 @@ export default function App() {
               </ul>
             </div>
           </div>
+        </Section>
+
+        {/* CASE STUDY */}
+        {/*
+          * DIRECTLY AFTER "Where it actually is", and that ordering is the
+          * argument. The status block has just told the reader what is not
+          * built; this is the section that says the thing which IS built was
+          * built this way. Put before it, it reads as a boast standing on
+          * nothing. Put after the FAQ, nobody scrolls that far.
+          *
+          * Every item renders its link. That is not decoration - PROOF's header
+          * says an item that stops naming something a stranger can open should
+          * be deleted, and a link that renders is the thing that makes a broken
+          * one visible.
+          */}
+        <Section id="case-study">
+          <h2 className="font-display text-3xl text-sand sm:text-4xl">{PROOF.heading}</h2>
+          <p className="mt-4 max-w-xl leading-relaxed text-clay">{PROOF.intro}</p>
+          <ul className="mt-8 space-y-8">
+            {PROOF.items.map((item) => (
+              <li key={item.title} data-anim-item className="max-w-xl">
+                <h3 className="font-display text-xl text-sand">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-clay">{item.body}</p>
+                <p className="mt-3">
+                  <a
+                    href={item.href}
+                    className="text-sm text-clay underline underline-offset-4 hover:text-sand"
+                  >
+                    {item.hrefLabel}
+                  </a>
+                </p>
+              </li>
+            ))}
+          </ul>
+          {/*
+            * Taupe, and this is the one place on the page it is right: index.css
+            * reserves it for metadata, and the limit is exactly that - a note
+            * about the evidence rather than a fourth piece of it. It still sits
+            * inside the section, above the fold of the next one, because the
+            * whole point is that it is not fine print.
+            */}
+          <p className="mt-10 max-w-xl text-sm leading-relaxed text-taupe">{PROOF.limit}</p>
         </Section>
 
         {/* QUESTIONS */}

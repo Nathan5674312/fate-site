@@ -30,7 +30,7 @@ import { createElement } from 'react'
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
 try {
   const { default: App } = await vite.ssrLoadModule('/src/App.tsx')
-  const { BRAND, CLAIMS, DOWNLOAD, FAQ, HERO, LINKS, STATUS } =
+  const { BRAND, CLAIMS, DOWNLOAD, FAQ, HERO, LINKS, PROOF, STATUS } =
     await vite.ssrLoadModule('/src/content.ts')
 
   const html = renderToString(createElement(App))
@@ -139,6 +139,17 @@ try {
     '### Not built',
     '',
     ...STATUS.notBuilt.map((s) => `- ${s}`),
+    '',
+    /* The URL is inline on each line rather than a footnote, because a model
+       lifting one bullet out of this file has to carry the thing that makes
+       the bullet checkable with it. See PROOF's header in content.ts. */
+    `## ${PROOF.heading}`,
+    '',
+    PROOF.intro,
+    '',
+    ...PROOF.items.map((p) => `- **${p.title}** — ${p.body} (${p.href})`),
+    '',
+    PROOF.limit,
     '',
     `## ${FAQ.heading}`,
     '',
