@@ -243,8 +243,17 @@ export const LINKS = {
  * Verified 2026-09-09, each by fetching the public URL, not by remembering it:
  * `Nathan5674312/fate` has AGENTS.md and _templates at its root;
  * `agent-workspace/main/docs/AGENT-RELEASE.md` answers 200 and opens with the
- * line quoted below; `fate-site/master/src/content.ts` answers 200 and contains
- * seven vault-note citations. Re-check before editing any number here.
+ * line quoted below; `fate-site/master/src/content.ts` answers 200 and cites
+ * the vault notes throughout.
+ *
+ * 🔴 NO COUNT OF THOSE CITATIONS, AND IT COST A PUSH TO LEARN WHY. The first
+ * version of the item below said "seven times over", which was measured and
+ * true — until this very block was added to this very file, which took it to
+ * ten. A self-referential count invalidates itself the moment anyone edits the
+ * thing it counts, and it fails in the direction that reads as sloppiness
+ * rather than as a lie, which is not much better on a page arguing that its
+ * numbers are right. Same rule DOWNLOAD applies to the version number: name
+ * the thing, not the tally. Do not put a number back.
  *
  * 🔴 THE LIMIT IS PART OF THE SECTION, NOT A DISCLAIMER UNDER IT. A sample of
  * one presented as evidence is the overstatement this audience punishes
@@ -264,9 +273,10 @@ export const PROOF = {
       title: 'The copy is not in the page',
       body:
         'Every string a visitor sees lives in one file, src/content.ts, and its comments cite ' +
-        'the vault notes each claim was written from by name — 08 - Product Definition and ' +
-        'Decisions, 12 - Website and Domain — seven times over. The citations are the audit ' +
-        'trail: you can read the file and see which decision produced which sentence.',
+        'the vault notes each claim was written from by name: 08 - Product Definition and ' +
+        'Decisions, 12 - Website and Domain, Fate Site - Landing Page Research. The citations ' +
+        'are the audit trail — you can read the file and see which decision produced which ' +
+        'sentence, including the ones that were retired and why.',
       href: 'https://github.com/Nathan5674312/fate-site/blob/master/src/content.ts',
       hrefLabel: 'fate-site/src/content.ts',
     },
