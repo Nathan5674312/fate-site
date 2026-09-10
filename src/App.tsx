@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BRAND, CLAIMS, DOWNLOAD, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
+import { BRAND, CLAIMS, DOWNLOAD, FAQ, FOOTER, HANDS, HERO, LINKS, STATUS, WAITLIST } from './content'
 import { DEFAULT_OPTIONS, Hands } from './hands/Hands'
 import { usePageMotion } from './motion'
 
@@ -535,6 +535,25 @@ export default function App() {
           </div>
         </Section>
 
+        {/* QUESTIONS */}
+        {/*
+          * Plain headings and paragraphs, not <details>. Collapsing these would
+          * save vertical space and cost the thing the section is for: an answer
+          * behind a click is an answer a crawler reads at lower weight and a
+          * reader does not skim. The page is already long and honest about it.
+          */}
+        <Section id="questions">
+          <h2 className="font-display text-3xl text-sand sm:text-4xl">{FAQ.heading}</h2>
+          <dl className="mt-8 space-y-8">
+            {FAQ.items.map((item) => (
+              <div key={item.q} data-anim-item>
+                <dt className="font-display text-xl text-sand">{item.q}</dt>
+                <dd className="mt-3 max-w-xl text-sm leading-relaxed text-clay">{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </Section>
+
         {/* WAITLIST */}
         <Section id="waitlist">
           <Waitlist />
@@ -565,6 +584,14 @@ export default function App() {
           <p className="mt-2 text-sm">
             <a href={LINKS.repo} className="text-clay underline underline-offset-4 hover:text-sand">
               {LINKS.repoLabel}
+            </a>
+          </p>
+          <p className="mt-2 text-sm">
+            <a
+              href={FOOTER.privacyUrl}
+              className="text-clay underline underline-offset-4 hover:text-sand"
+            >
+              {FOOTER.privacy}
             </a>
           </p>
           <p className="mt-6 text-xs text-taupe">

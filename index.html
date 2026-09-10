@@ -3,10 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fate — a workspace your coding agent already knows how to use</title>
+    <!-- THE TITLE IS FOR SEARCH, THE og:title BELOW IS FOR SHARE CARDS, AND THEY
+         DIFFER ON PURPOSE. Do not "fix" the inconsistency.
+
+         This tag said "Fate — a workspace your coding agent already knows how to
+         use" until 2026-09-09. Good line, unsearchable: it contains not one noun
+         anybody types into a search box. No "markdown", no "Claude Code", no
+         "vault", no "local". Title is the highest-weight field on the page and
+         it was spending all of it on brand work the word "Fate" cannot cash —
+         the name is an anime franchise and a common noun, and the domain does
+         not contain it, so brand queries are lost before they start. The line
+         survives as og:title, where a human reads it and nothing is ranking. -->
+    <title>Fate — a local markdown vault for Claude Code, Codex and Gemini</title>
+    <!-- "Join the waitlist" was the last sentence here and went stale on
+         2026-09-05, when v1.0.0 shipped and the waitlist changed subject to the
+         paid tier. It was pointing search traffic at the wrong button. -->
     <meta
       name="description"
-      content="Point Claude, Codex or Gemini at the folder. Plain markdown on disk, no plugin, no API key. Join the waitlist."
+      content="A local markdown vault your coding agent already knows how to use. Point Claude Code, Codex or Gemini at the folder: no plugin, no API key. Free, Windows."
     />
     <meta name="color-scheme" content="dark" />
     <!-- Matches --color-ink in src/index.css, so Android Chrome's toolbar and

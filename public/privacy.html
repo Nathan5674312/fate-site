@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy — Fate</title>
+    <meta
+      name="description"
+      content="What the Fate site stores when you join the list, what it does not store, and who else sees the request."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#08080a" />
+    <link rel="canonical" href="https://www.divineconstruc.com/privacy.html" />
+
+    <!-- NOT noindex, unlike 404.html. A privacy page is a trust signal and it is
+         one of the pages an AI assistant looks for when asked "is this safe to
+         install", so it is meant to be found.
+
+         STANDALONE, for the same reason 404.html is: no bundle, no React, no
+         hands layer, and it still renders if the app build is broken. The
+         colours and the two families below are copied from src/index.css rather
+         than imported. That duplication is the price of not shipping a bundle
+         for one screen, and it is the same trade already taken next door.
+
+         🔴 EVERY CLAIM HERE IS CHECKABLE AGAINST functions/api/waitlist.ts AND
+         schema.sql, AND THAT IS THE POINT. The site's whole argument is that it
+         does not lie to you about where your data goes, so a privacy page that
+         overstates is worse than none at all. If the endpoint starts storing
+         something new, this file is wrong the same day. Verified against the
+         Worker and the schema on 2026-09-09: the table is email, created_at,
+         ref, message, token, wants, and nothing else. -->
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Fraunces:opsz,wght@9..144,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --ink: #08080a;
+        --sand: #f4f4f5;
+        --clay: #b0b0b8;
+        --taupe: #5c5c63;
+        --coffee: #26262b;
+      }
+      body {
+        margin: 0;
+        padding: 4rem 1.5rem 6rem;
+        background: var(--ink);
+        color: var(--clay);
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 34rem;
+        margin-inline: auto;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-family: 'Fraunces', ui-serif, Georgia, serif;
+        font-weight: 300;
+        font-size: clamp(2rem, 7vw, 3rem);
+        line-height: 1.05;
+        color: var(--sand);
+      }
+      h2 {
+        margin: 2.75rem 0 0.75rem;
+        font-family: 'Fraunces', ui-serif, Georgia, serif;
+        font-weight: 300;
+        font-size: 1.25rem;
+        color: var(--sand);
+      }
+      .updated {
+        margin: 0 0 2.5rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--taupe);
+      }
+      p {
+        margin: 0 0 1rem;
+      }
+      ul {
+        margin: 0 0 1rem;
+        padding-left: 1.1rem;
+      }
+      li {
+        margin-bottom: 0.6rem;
+      }
+      code {
+        font-size: 0.85em;
+        color: var(--sand);
+      }
+      a {
+        color: var(--sand);
+        text-decoration-color: var(--taupe);
+        text-underline-offset: 4px;
+      }
+      a:hover {
+        text-decoration-color: var(--sand);
+      }
+      footer {
+        margin-top: 3.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--coffee);
+        font-size: 0.8rem;
+        color: var(--taupe);
+      }
+      /* Ink is the ground everywhere; the default ring vanishes against it. */
+      :focus-visible {
+        outline: 2px solid var(--sand);
+        outline-offset: 3px;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy</h1>
+      <p class="updated">Updated 9 September 2026</p>
+
+      <p>
+        This page describes the website at divineconstruc.com. The Fate application is a separate
+        thing and is covered at the bottom.
+      </p>
+
+      <h2>If you do not use the form, nothing is stored</h2>
+      <p>
+        There is no analytics on this site, no tracking pixel, no advertising tag and no cookie.
+        Reading the page leaves nothing behind, and nothing about your visit reaches a database.
+      </p>
+
+      <h2>If you join the list, five things are stored</h2>
+      <ul>
+        <li>Your email address, lowercased and trimmed.</li>
+        <li>The date and time you submitted it.</li>
+        <li>Which of the coming paid features you ticked, if any. Ticking nothing is normal.</li>
+        <li>The message you wrote to me, if you wrote one. That step is optional.</li>
+        <li>
+          A referral tag, only when the link you arrived on carried one as <code>?ref=</code>. It
+          is a plain label like a site name, not an identifier for you.
+        </li>
+      </ul>
+      <p>
+        A random token is also generated so that the optional message can prove it belongs to your
+        signup. It identifies the row, not you, and it is not used for anything else.
+      </p>
+
+      <h2>What is deliberately not stored</h2>
+      <p>
+        Your IP address and your browser user agent are not recorded, and no cookie is set. The
+        endpoint that receives the form does not send mail, does not call any third party, and
+        does not pass your address to anyone. It is not with a form vendor or a newsletter
+        service. It sits in a database on an account I own.
+      </p>
+
+      <h2>Who else sees the request</h2>
+      <p>
+        Two honest exceptions, because "nothing leaves" would be the easy sentence and not the
+        true one.
+      </p>
+      <ul>
+        <li>
+          <strong>Cloudflare</strong> hosts this site and runs the endpoint, so every request
+          passes through their network and is subject to their own privacy terms. That is true of
+          any hosted site and it is not something I can opt you out of.
+        </li>
+        <li>
+          <strong>Google Fonts</strong> serves the two typefaces this page uses, so your browser
+          fetches them from Google and Google sees that request. Nothing about the form is
+          involved and no address is sent, but the request is real and you should know about it.
+        </li>
+      </ul>
+
+      <h2>What you will receive</h2>
+      <p>
+        One email, when one of the features you are waiting for is real. There is no newsletter
+        and no drip sequence. If you wrote a message, I read it myself and I may write back.
+      </p>
+
+      <h2>Getting your address removed</h2>
+      <p>
+        Ask and it is deleted, with no conditions and nothing to confirm. Open an issue on
+        <a href="https://github.com/Nathan5674312/fate">the repository</a> and say so, or reply to
+        any email you get from me. Removal deletes the row, which takes the message and the ticks
+        with it.
+      </p>
+
+      <h2>The application</h2>
+      <p>
+        Fate itself has no account, no telemetry and no analytics. It makes exactly one request on
+        its own behalf: when it opens it asks GitHub whether a newer release exists, which is a
+        plain request for a public file carrying no identifier and no version, and one click in
+        the update panel stops it asking for good. Your notes are files on your own disk and
+        nothing uploads them.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        If what is stored changes, this page changes on the same day, and the date at the top is
+        the honest one.
+      </p>
+
+      <footer>
+        <p><a href="/">Back to Fate</a></p>
+      </footer>
+    </main>
+  </body>
+</html>

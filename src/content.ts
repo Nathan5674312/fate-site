@@ -208,6 +208,86 @@ export const STATUS = {
 } as const
 
 /**
+ * THE FAQ, AND IT IS HERE FOR THE CRAWLERS AS MUCH AS FOR THE READER.
+ *
+ * A question with its answer directly under it is the shape an LLM lifts most
+ * cleanly, because the question is the query and the answer is a self-contained
+ * span it can quote without inventing the context. Everything below was already
+ * true and already written somewhere on this page - CLAIMS, DOWNLOAD, STATUS -
+ * so this section adds no new claim. It re-cuts the ones that exist into the
+ * form the question actually arrives in.
+ *
+ * 🔴 THE HONESTY RULE APPLIES HARDEST HERE. These answers are the ones that get
+ * quoted back at you out of context, with no page around them to qualify
+ * anything. Every limit stays IN the answer rather than beside it - "Windows
+ * only", "never on iOS", "read but not write" - because a quoted half-answer
+ * that oversells is the version a reader will meet first.
+ *
+ * prerender.mjs turns this array into FAQPage JSON-LD at build time. Do not
+ * hand-write that schema anywhere: two copies of an answer is exactly how one
+ * of them goes stale, and a stale structured-data answer is the one nobody
+ * proofreads because it is invisible on the page.
+ */
+export const FAQ = {
+  heading: 'Questions',
+  items: [
+    {
+      q: 'Which agents does Fate work with?',
+      a:
+        'Claude Code, Codex, Gemini, and anything else that can read a folder. There is no ' +
+        'plugin to install and no API key to paste — you point the agent you already use at ' +
+        'the vault and it reads the conventions in it. Fate never handles a credential.',
+    },
+    {
+      q: 'Does Fate send my notes anywhere?',
+      a:
+        'No. It makes exactly one request on its own behalf: when it opens it asks GitHub ' +
+        'whether a newer release exists, a plain GET for a public file with no identifier, no ' +
+        'version and no telemetry, and one click in the update panel stops it asking for good. ' +
+        'The window ships default-src none with connect-src none, so the browser engine ' +
+        'refuses a network call rather than the code promising not to make one.',
+    },
+    {
+      q: 'Is it free?',
+      a:
+        'Yes, and with no account. Everything Fate does today runs on hardware you already ' +
+        'own, so it costs nothing to keep alive and it stays free — a permanent answer, not an ' +
+        'introductory one. What will cost money later is the part that needs a machine of mine ' +
+        'online: sync away from your own network, sharing with someone who is not you, and two ' +
+        'people in one document at once. There is no price yet.',
+    },
+    {
+      q: 'Does it run on macOS or Linux?',
+      a:
+        'Not yet. Windows only. Both targets are configured in the build and neither has ever ' +
+        'been built. The Windows builds are also unsigned, so SmartScreen warns the first time.',
+    },
+    {
+      q: 'Is there a mobile app?',
+      a:
+        'No, and on iOS there never will be one that runs agents — the platform does not allow ' +
+        'a process to spawn another one, which is the whole mechanism. The files are plain ' +
+        'markdown and sync like any other files; the agents run on a computer.',
+    },
+    {
+      q: 'Do I have to move my notes out of Obsidian?',
+      a:
+        'No. Every note is a plain .md file in a folder you picked, so the same folder opens in ' +
+        'Obsidian and nothing has to be exported or imported. Saving writes a temp file and ' +
+        'renames it over the target, and the previous copy stays in .backups/.',
+    },
+    {
+      q: 'What does the agent actually do with it?',
+      a:
+        'It looks up which skills apply, interviews you about how you actually work — what ' +
+        'font, what voice, what done looks like — writes those answers to disk as new skills, ' +
+        'and uses them to do roughly four fifths of the repetitive part next time. Today it ' +
+        'can read the vault but not write to it: the tool list is Read, Glob and Grep.',
+    },
+  ],
+} as const
+
+/**
  * THE WAITLIST CHANGED SUBJECT ON 2026-09-05, IT DID NOT MOVE.
  *
  * It used to mean "tell me when there is something to install". There is
@@ -404,6 +484,20 @@ export const HANDS = {
 
 export const FOOTER = {
   madeBy: `${BRAND.name} is made by ${BRAND.studio}.`,
+  /*
+   * The privacy page, which is a STATIC FILE at public/privacy.html and not a
+   * route. This site has no router and does not need one for a document that
+   * never changes - see the header of that file. A plain href means it is
+   * reachable with the bundle broken and readable by anything that does not run
+   * JS, which is most of what reads a privacy page.
+   *
+   * It exists because the form writes real addresses to a real database and the
+   * copy makes specific claims about that ("logs no IP and sets no cookie").
+   * An unbacked privacy claim is worse than no claim on a page whose whole
+   * argument is that it does not lie about where your data goes.
+   */
+  privacy: 'Privacy',
+  privacyUrl: '/privacy.html',
   /*
    * 🔴 NO CONTACT ADDRESS HERE, AND THAT IS A DECISION RATHER THAN A GAP.
    *
