@@ -159,7 +159,14 @@ export const CLAIMS = [
   {
     title: 'It cannot phone home',
     body:
-      'Three runtime dependencies, and the window ships default-src none with connect-src none, ' +
+      /* FOUR, NOT THREE. Counted in package.json on 2026-09-10:
+         @anthropic-ai/claude-agent-sdk, electron-updater, lucide-react, zod.
+         This said three, which was true before the update channel shipped and
+         added electron-updater on 2026-09-04. A bare count is exactly the claim
+         that goes stale without anyone noticing, so they are named now: a wrong
+         name is visible in a way a wrong number is not. */
+      'Four runtime dependencies — the agent SDK, the updater, an icon set and a schema ' +
+      'validator — and the window ships default-src none with connect-src none, ' +
       'so the browser engine refuses a network call rather than the code promising not to make ' +
       'one. The one request is asking GitHub if a version exists, and settings turn it off.',
   },
@@ -380,8 +387,16 @@ export const FAQ = {
       q: 'Which agents does Fate work with?',
       a:
         'Claude Code, Codex, Gemini, and anything else that can read a folder. There is no ' +
-        'plugin to install and no API key to paste — you point the agent you already use at ' +
-        'the vault and it reads the conventions in it. Fate never handles a credential.',
+        'plugin to install and no API key to paste — you point the agent you already use at the ' +
+        'vault and it reads the conventions in it. That is deliberate rather than incidental: ' +
+        'discovery happens through open files any agent already reads, AGENTS.md and CLAUDE.md ' +
+        'and the folder structure itself, rather than a proprietary API that would tie your ' +
+        'notes to one vendor. Fate never handles a credential, never proxies a request and ' +
+        'never offers a login, which puts it on the same footing as an .editorconfig or a ' +
+        'Makefile: your agent, your subscription, your machine. It is also why the product ' +
+        'works while the app is shut, since an agent can read the folder with nothing running. ' +
+        'Today its tool list is Read, Glob and Grep, so it can read the vault but cannot yet ' +
+        'write to it.',
     },
     {
       q: 'Does Fate send my notes anywhere?',
@@ -389,45 +404,83 @@ export const FAQ = {
         'No. It makes exactly one request on its own behalf: when it opens it asks GitHub ' +
         'whether a newer release exists, a plain GET for a public file with no identifier, no ' +
         'version and no telemetry, and one click in the update panel stops it asking for good. ' +
-        'The window ships default-src none with connect-src none, so the browser engine ' +
-        'refuses a network call rather than the code promising not to make one.',
+        'There is no account, no analytics and no crash reporting. The window ships default-src ' +
+        'none with connect-src none, so the browser engine refuses a network call rather than ' +
+        'the code promising not to make one, a guard that holds even if some future dependency ' +
+        'tries. There are four runtime dependencies in total. Your notes are .md files in a ' +
+        'folder you chose, and nothing uploads them: saving writes a temp file and renames it ' +
+        'over the target, entirely on your disk. Pull the network cable and reading, editing, ' +
+        'saving, the graph, the database, canvas and version history all still work.',
     },
     {
       q: 'Is it free?',
       a:
-        'Yes, and with no account. Everything Fate does today runs on hardware you already ' +
-        'own, so it costs nothing to keep alive and it stays free — a permanent answer, not an ' +
-        'introductory one. What will cost money later is the part that needs a machine of mine ' +
-        'online: sync away from your own network, sharing with someone who is not you, and two ' +
-        'people in one document at once. There is no price yet.',
+        'Yes, and with no account. The rule for what will ever cost money is upkeep rather than ' +
+        'features: everything Fate does today runs on hardware you already own, so it costs ' +
+        'nothing to keep alive and it stays free, a permanent answer rather than an ' +
+        'introductory one. What will cost money is the part that needs a machine of mine ' +
+        'online, and there are exactly three: sync away from your own network, sharing a note ' +
+        'with someone who is not you, and two people in one document at once. Costs that do not ' +
+        'grow per person stay mine. A code-signing certificate and a developer account cost the ' +
+        'same whether ten people run this or a hundred thousand, so a Mac build and a build ' +
+        'that does not trip SmartScreen will not be sold back to you as features. There is no ' +
+        'price yet, and I am not going to invent one.',
     },
     {
       q: 'Does it run on macOS or Linux?',
       a:
-        'Not yet. Windows only. Both targets are configured in the build and neither has ever ' +
-        'been built. The Windows builds are also unsigned, so SmartScreen warns the first time.',
+        'Not yet. Windows only, and the honest version is that the other two have never once ' +
+        'been built. The macOS and Linux electron-builder targets are configured in ' +
+        'package.json and unverified, which is scaffolding rather than support. Neither can be ' +
+        'produced on the machine this is built on: mac artifacts require macOS, and a Linux ' +
+        'AppImage from a non-Linux host requires Docker, which is not installed. The Windows ' +
+        'release ships two files: an installer of about 104 MB, or a portable .zip of about ' +
+        '142 MB that runs out of a folder ' +
+        'without installing. Those builds are unsigned, there being no code-signing ' +
+        'certificate, so SmartScreen warns the first time you run one and getting past it is ' +
+        'More info, then Run anyway. The certificate and an Apple developer account are costs ' +
+        'that do not scale per user, so they stay absorbed rather than becoming paid features.',
     },
     {
       q: 'Is there a mobile app?',
       a:
-        'No, and on iOS there never will be one that runs agents — the platform does not allow ' +
-        'a process to spawn another one, which is the whole mechanism. The files are plain ' +
-        'markdown and sync like any other files; the agents run on a computer.',
+        'No, and on iOS there never will be one that runs agents. The platform does not allow a ' +
+        'process to spawn another process, and spawning the agent you already have installed is ' +
+        'the entire mechanism, so this is a platform rule rather than work nobody has got to ' +
+        'yet. That also sets the priority: mobile is rated low, because what the app does is ' +
+        'let you watch an agent work, and agents run on a computer. What does travel is the ' +
+        'notes themselves. They are plain .md files in an ordinary folder, so they move with ' +
+        'whatever you already use for files and open in any editor on any device with no export ' +
+        'step. Sync of any kind is not built yet, including on the desktop, and nothing about ' +
+        'it has been started. A phone can read your vault today; it cannot run the part that ' +
+        'makes Fate useful.',
     },
     {
       q: 'Do I have to move my notes out of Obsidian?',
       a:
-        'No. Every note is a plain .md file in a folder you picked, so the same folder opens in ' +
-        'Obsidian and nothing has to be exported or imported. Saving writes a temp file and ' +
-        'renames it over the target, and the previous copy stays in .backups/.',
+        'No, and there is nothing to import either, because it is the same folder. Every note ' +
+        'is a plain .md file in a directory you picked, so you can open that directory in ' +
+        'Obsidian and in Fate and neither has to be told about the other. Saving writes a temp ' +
+        'file and renames it over the target, so a crash mid-write cannot leave you half a ' +
+        'note, and the previous copy stays in .backups/. Every save leaves one, and that is ' +
+        'what version history reads. Bookmarks are stored in the .obsidian/bookmarks.json that ' +
+        'Obsidian itself uses rather than a second list, so a bookmark made in either program ' +
+        'shows up in both. The honest gap there: a running Obsidian rewrites that file from ' +
+        'memory, so a bookmark added while it is open can be overwritten by it.',
     },
     {
       q: 'What does the agent actually do with it?',
       a:
-        'It looks up which skills apply, interviews you about how you actually work — what ' +
-        'font, what voice, what done looks like — writes those answers to disk as new skills, ' +
-        'and uses them to do roughly four fifths of the repetitive part next time. Today it ' +
-        'can read the vault but not write to it: the tool list is Read, Glob and Grep.',
+        'Four steps, and the third is the one that matters. It looks up which skills apply, ' +
+        'interviews you about how you actually work, what font, what voice, what hook, what ' +
+        'done looks like, then writes those answers to disk as new skill files and uses them to ' +
+        'do the repetitive part next time. So the vault does not ship your skills; it ships the ' +
+        'protocol that manufactures them from an interview, which is why a near-empty vault is ' +
+        'still worth downloading. The honest scope is roughly four fifths of the manual labour ' +
+        'rather than full automation: you keep the creative decisions and supply the raw ' +
+        'material, and any feature promising to remove you from that is overselling it. Today ' +
+        'the agent can read the vault but not write to it, the tool list being Read, Glob and ' +
+        'Grep, so it proposes and you apply.',
     },
   ],
 } as const
