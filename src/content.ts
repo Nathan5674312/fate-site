@@ -187,6 +187,11 @@ export const STATUS = {
     'Grouping that needs no tags: facets derived from folder, date and link neighbourhood',
     'Version history — every save leaves the previous copy, and restore goes back through save',
     'Daily notes and a calendar planner over the whole vault',
+    /* v1.1.0. Two surfaces, one line, because they are one story to a reader
+       deciding whether this can find their notes. Ctrl+P is the new one; the
+       word matching is a fix to the old one, and saying only the first would
+       leave the notBuilt line below reading as though nothing had moved. */
+    'Ctrl+P opens any note by name, and search matches the words of a query rather than the exact phrase',
   ],
   /*
    * 🔴 "No installer yet" LIVED HERE UNTIL 2026-09-05 AND IS NOW FALSE. It was
@@ -201,7 +206,13 @@ export const STATUS = {
     'Windows only. macOS and Linux are configured targets that have never been built',
     'The builds are unsigned, so Windows warns the first time you run one',
     'The agent can read the vault but not yet write to it — the tool list is Read, Glob and Grep',
-    'Search is still plain keyword matching, and there is no import from Notion or Evernote',
+    /* "STILL plain keyword matching" until v1.1.0, and "still" had to go: it
+       signals nothing has moved, and something did — the query used to be one
+       string handed to an index-of, so two words only matched as a phrase. The
+       gap this line exists to state is the real one and it is unchanged: a
+       linear scan rather than an index, and no semantic search. Naming the
+       mechanism keeps it from reading as a contradiction of the built line. */
+    'Search is keyword matching over a linear scan, not an index, and there is no import from Notion or Evernote',
     'Nothing prunes the version history, so it grows without limit until you clear it',
     'No mobile app, and on iOS there never will be one that runs agents — no subprocesses',
   ],
