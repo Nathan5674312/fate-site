@@ -266,8 +266,8 @@ export const PROOF = {
     'There are no customers to write one about, so here is the one that exists. The app you ' +
     'can download and the page you are reading were both built by an agent working a vault ' +
     'that follows these conventions, with a human reviewing. That is a claim every company ' +
-    'makes, so all three repositories are public and each item below names the file you can ' +
-    'check it against.',
+    'makes, so all three repositories are public and each item below names the file or the ' +
+    'history you can check it against.',
   items: [
     {
       title: 'The copy is not in the page',
@@ -299,6 +299,38 @@ export const PROOF = {
         'never seen a vault needs the conventions, not a window.',
       href: LINKS.repo,
       hrefLabel: 'github.com/Nathan5674312/fate',
+    },
+    {
+      /*
+       * 🔴 THE NUMBER IS A FLOOR AND THE COPY HAS TO SAY SO. Measured
+       * 2026-09-09: 218 of 233 commits in agent-workspace and 49 of 80 here
+       * carried the trailer BEFORE the commit that added this section, which
+       * carries one too - hence 50 of 81 in the copy. Counting yourself in is
+       * the difference between a number that is right on the day it ships and
+       * one that is off by exactly one forever. The 31 that do not are NOT human commits - none of
+       * them is a merge (checked), and most are prefixed `hands:`, from the
+       * second agent session, which does not write the trailer at all.
+       *
+       * So the honest reading is the opposite of the flattering one: this
+       * undercounts. Quoting 94% and leaving it there would invite a reader who
+       * checks to find a `hands:` commit with no trailer and conclude a human
+       * wrote it. Say it is a lower bound, or do not use the number.
+       *
+       * Dated rather than live, and that is deliberate. A bare count goes stale
+       * on the next commit and nobody notices, which is the same trap DOWNLOAD
+       * avoids by never printing a version number. A measurement with its date
+       * on it stays true forever, and the command below re-derives today's.
+       */
+      title: 'The commits say who wrote them',
+      body:
+        'The co-author trailer is in the commit message itself, so git log re-derives this on ' +
+        'any clone instead of asking you to trust a number printed here. Measured 2026-09-09: ' +
+        '218 of 233 commits in the app and 50 of 81 on this site name an agent as co-author. ' +
+        'The remainder are not a human stepping in — they are commits from a second agent ' +
+        'session that does not write the trailer, so treat the count as a floor rather than ' +
+        'a census.',
+      href: 'https://github.com/Nathan5674312/agent-workspace/commits/main',
+      hrefLabel: 'agent-workspace commit history',
     },
   ],
   /* Said in the section, not in small type beneath it. See the header. */
