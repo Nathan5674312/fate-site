@@ -590,7 +590,8 @@ export const FOOTER = {
    * argument is that it does not lie about where your data goes.
    */
   privacy: 'Privacy',
-  privacyUrl: '/privacy.html',
+  /* Extensionless: Pages 308s /privacy.html to this. See the canonical there. */
+  privacyUrl: '/privacy',
   /*
    * 🔴 NO CONTACT ADDRESS HERE, AND THAT IS A DECISION RATHER THAN A GAP.
    *

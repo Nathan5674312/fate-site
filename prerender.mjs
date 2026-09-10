@@ -158,7 +158,7 @@ try {
     '',
     `- Vault template (the product): ${LINKS.repo}`,
     `- Releases: ${DOWNLOAD.url}`,
-    '- Privacy: https://www.divineconstruc.com/privacy.html',
+    '- Privacy: https://www.divineconstruc.com/privacy',
     '',
   ].join('\n')
 

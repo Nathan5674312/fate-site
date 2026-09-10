@@ -10,7 +10,12 @@
     />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#08080a" />
-    <link rel="canonical" href="https://www.divineconstruc.com/privacy.html" />
+    <!-- /privacy, NOT /privacy.html. Cloudflare Pages 308s the .html form to the
+         extensionless one, so naming the .html here would point the canonical at a
+         redirect rather than at the page - the same class of mistake as naming the
+         apex canonical, for the reason in index.html. Verified against the live
+         deploy on 2026-09-09: /privacy.html -> 308 -> /privacy -> 200. -->
+    <link rel="canonical" href="https://www.divineconstruc.com/privacy" />
 
     <!-- NOT noindex, unlike 404.html. A privacy page is a trust signal and it is
          one of the pages an AI assistant looks for when asked "is this safe to

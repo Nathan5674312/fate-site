@@ -10,7 +10,7 @@
   <!-- A static file, not a route, and deliberately indexable: it is one of the
        pages an assistant looks for when asked whether this is safe to install. -->
   <url>
-    <loc>https://www.divineconstruc.com/privacy.html</loc>
+    <loc>https://www.divineconstruc.com/privacy</loc>
     <changefreq>yearly</changefreq>
   </url>
 </urlset>
