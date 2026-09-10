@@ -30,7 +30,8 @@ import { createElement } from 'react'
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
 try {
   const { default: App } = await vite.ssrLoadModule('/src/App.tsx')
-  const { BRAND, DOWNLOAD, FAQ, HERO } = await vite.ssrLoadModule('/src/content.ts')
+  const { BRAND, CLAIMS, DOWNLOAD, FAQ, HERO, LINKS, STATUS } =
+    await vite.ssrLoadModule('/src/content.ts')
 
   const html = renderToString(createElement(App))
 
@@ -93,9 +94,69 @@ try {
     .replace('</head>', `  <script type="application/ld+json">${json}</script>
   </head>`)
 
+  /*
+   * /llms.txt — the whole page as plain markdown, for a model reading rather
+   * than a browser rendering.
+   *
+   * WHY, GIVEN THE PAGE IS NOW PRERENDERED: prerendering fixes the crawler that
+   * fetches HTML and gives up on JS. This is for the one that would rather not
+   * parse HTML at all, and it costs one generated file. The convention is
+   * llmstxt.org: an H1, a blockquote summary, then sections.
+   *
+   * GENERATED FROM content.ts, for the same reason the JSON-LD is. A hand-kept
+   * summary of a page is a second copy of every claim on it, and this one is
+   * invisible to anyone who does not go looking, so it would rot first and
+   * loudest — a model quoting a stale "no installer yet" back at a reader is
+   * exactly the failure the honesty rule exists to prevent.
+   */
+  const llms = [
+    `# ${BRAND.name}`,
+    '',
+    `> ${HERO.headline} ${HERO.sub}`,
+    '',
+    `${BRAND.name} is made by ${BRAND.studio}. Free, no account, Windows only.`,
+    '',
+    '## What it is',
+    '',
+    ...CLAIMS.map((c) => `- **${c.title}** — ${c.body}`),
+    '',
+    '## Get it',
+    '',
+    DOWNLOAD.body,
+    '',
+    `Download: ${DOWNLOAD.url}`,
+    '',
+    ...DOWNLOAD.notes.map((n) => `- ${n}`),
+    '',
+    `## ${STATUS.heading}`,
+    '',
+    STATUS.intro,
+    '',
+    '### Built',
+    '',
+    ...STATUS.built.map((s) => `- ${s}`),
+    '',
+    '### Not built',
+    '',
+    ...STATUS.notBuilt.map((s) => `- ${s}`),
+    '',
+    `## ${FAQ.heading}`,
+    '',
+    ...FAQ.items.flatMap((item) => [`### ${item.q}`, '', item.a, '']),
+    '## Links',
+    '',
+    `- Vault template (the product): ${LINKS.repo}`,
+    `- Releases: ${DOWNLOAD.url}`,
+    '- Privacy: https://www.divineconstruc.com/privacy.html',
+    '',
+  ].join('\n')
+
+  writeFileSync('dist/llms.txt', llms)
+
   writeFileSync(file, out)
   console.log(
-    `prerendered ${html.length} chars of markup and ${FAQ.items.length} FAQ entries into ${file}`,
+    `prerendered ${html.length} chars of markup and ${FAQ.items.length} FAQ entries into ${file},` +
+      ` plus ${llms.length} chars of dist/llms.txt`,
   )
 } finally {
   await vite.close()

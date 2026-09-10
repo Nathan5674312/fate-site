@@ -40,6 +40,13 @@ function Section({
   )
 }
 
+/** A question turned into a URL fragment. Lowercase, words joined by dashes. */
+const slug = (q: string) =>
+  q
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
 type FormState = 'idle' | 'sending' | keyof typeof WAITLIST.states
 /* The note step's own outcomes. Separate from FormState because by then the
    address is already saved - none of these can mean the signup failed. */
@@ -462,7 +469,7 @@ export default function App() {
         </div>
       </section>
 
-      <main className="flex flex-col gap-24 py-20 sm:gap-32 sm:py-28">
+      <main className="flex flex-col gap-24 pt-20 pb-28 sm:gap-32 sm:py-28">
         {/* THREE CLAIMS */}
         <Section>
           <ul className="grid gap-10 sm:grid-cols-3">
@@ -546,7 +553,19 @@ export default function App() {
           <h2 className="font-display text-3xl text-sand sm:text-4xl">{FAQ.heading}</h2>
           <dl className="mt-8 space-y-8">
             {FAQ.items.map((item) => (
-              <div key={item.q} data-anim-item>
+              /*
+               * An id per question, derived from the question itself, so every
+               * answer has its own address. That is the only "internal linking"
+               * this page can honestly do - it is one scroll, and a nav bar over
+               * the fold would fight the hands for the one screen that has to
+               * work. A stable anchor lets an assistant cite one answer instead
+               * of the whole page, and lets a reply to someone be a link to the
+               * exact sentence rather than "scroll down a bit".
+               *
+               * Derived, not authored: a hand-written slug is a second thing to
+               * keep in sync with a question that gets reworded.
+               */
+              <div key={item.q} id={slug(item.q)} data-anim-item className="scroll-mt-24">
                 <dt className="font-display text-xl text-sand">{item.q}</dt>
                 <dd className="mt-3 max-w-xl text-sm leading-relaxed text-clay">{item.a}</dd>
               </div>
@@ -599,6 +618,46 @@ export default function App() {
           </p>
         </footer>
       </main>
+
+      {/*
+        * STICKY BAR, MOBILE ONLY, AND IT DOES NOT SAY "DOWNLOAD".
+        *
+        * The obvious version of this points at DOWNLOAD.url like the hero does.
+        * It must not. The build is a Windows .exe and this bar only ever appears
+        * on a phone, so the obvious version puts the page's primary action on
+        * the one device that physically cannot carry it out - and the reader
+        * finds that out after the tap, having been told "Windows only" in text
+        * they scrolled past. HERO.ctaNote exists to prevent exactly that.
+        *
+        * So it offers the thing a phone CAN do. Same label as the hero's second
+        * door, reused rather than re-written: one string, one meaning.
+        *
+        * NOT the same mistake as the second download button removed earlier -
+        * that was two identical solid buttons to the same URL competing for the
+        * same decision. This is a different destination on a different device.
+        *
+        * pb-28 on <main> above the fold of this bar: without it the bar covers
+        * the footer's last line at the bottom of the scroll, where there is
+        * nothing left to scroll to move it.
+        */}
+      <div
+        /* NO `plate` HERE. index.css:210 sets `.plate { position: relative }`
+           and it is declared after Tailwind's utilities, so it silently wins
+           over `fixed` and the bar renders inline at the bottom of the document
+           instead of sticking. It does not need the plate anyway - the plate
+           exists to give copy a ground over the moving hands, and this has its
+           own in bg-ink/95 plus the blur. */
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-coffee bg-ink/95 px-6 py-4 backdrop-blur-sm sm:hidden"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
+        <a
+          href="#waitlist"
+          data-solid
+          className="block rounded-md bg-cream px-6 py-3 text-center font-medium text-ink"
+        >
+          {HERO.secondaryCta}
+        </a>
+      </div>
     </div>
   )
 }
