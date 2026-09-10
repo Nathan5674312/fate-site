@@ -65,6 +65,54 @@ try {
       downloadUrl: DOWNLOAD.url,
       isAccessibleForFree: true,
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      /*
+       * 🔴 DISAMBIGUATION, AND IT IS THE MOST LOAD-BEARING PART OF THIS BLOCK.
+       *
+       * Measured on Google 2026-09-10, searching the brand: "divine construc"
+       * is corrected to "divine construct" and returns the TYPE-MOON Wiki,
+       * r/fatestaynight, the Fate/Grand Order Wiki, Splinterlands lore, and a
+       * Plano roofing company with 99 reviews and a BBB profile on
+       * divineconstruct.com. Both halves of the name collide, and they collide
+       * with the SAME franchise: the product is called Fate and the studio is
+       * called Divine Construct, which is a term from Fate/stay night.
+       *
+       * A search engine cannot separate those on strings alone, so these fields
+       * hand it the separation as data instead. `alternateName` is the
+       * executable's real name, which is the one string in this project that is
+       * unique on the open web. `sameAs` ties the entity to two public repos
+       * that unambiguously describe software. `disambiguatingDescription` is the
+       * schema.org property that exists for precisely this case.
+       *
+       * None of this wins the brand query and it is not meant to. It is meant
+       * so that when someone searches the product WITH a qualifier — "Fate
+       * markdown vault", "FateVault Claude Code" — there is an entity to
+       * resolve to rather than an anime wiki. The real fix is a domain carrying
+       * the product name; see `12 - Website and Domain` in the vault roadmap.
+       */
+      alternateName: 'FateVault',
+      disambiguatingDescription:
+        'A desktop application for Windows that stores notes as plain Markdown files for AI ' +
+        'coding agents to read. Unrelated to the Fate/stay night franchise, to the Fate/Grand ' +
+        'Order term "Divine Construct", and to any construction or roofing business.',
+      sameAs: [LINKS.repo, 'https://github.com/Nathan5674312/agent-workspace'],
+      publisher: {
+        '@type': 'Organization',
+        name: BRAND.studio,
+        url: 'https://www.divineconstruc.com/',
+        sameAs: ['https://github.com/Nathan5674312'],
+      },
+    },
+    /*
+     * A WebSite entity, so the site itself is a thing Google can name rather
+     * than a set of pages it found. `alternateName` gives it the two strings a
+     * person would actually type when they mean this and not the anime.
+     */
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: `${BRAND.name} — ${BRAND.studio}`,
+      alternateName: ['FateVault', 'Fate markdown vault'],
+      url: 'https://www.divineconstruc.com/',
       publisher: { '@type': 'Organization', name: BRAND.studio },
     },
     {
