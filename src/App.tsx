@@ -605,7 +605,30 @@ export default function App() {
           */}
         <Section id="questions">
           <h2 className="font-display text-3xl text-sand sm:text-4xl">{FAQ.heading}</h2>
-          <dl className="mt-8 space-y-8">
+          {/*
+            * 🔴 h3 + p, NOT dl/dt/dd, AND THAT IS A MEASURED DECISION.
+            *
+            * This was a definition list, which is arguably the more correct
+            * HTML for a question and its answer. It also made the whole section
+            * invisible to passage extraction. Measured 2026-09-10 against the
+            * live page with the citability scorer from TheSmokeDev/geo-skills:
+            * 14 content blocks found, NONE of them an FAQ answer, and not one
+            * FAQ question among the headings it saw. Seven answers written
+            * specifically to be quotable, and a passage extractor read none of
+            * them.
+            *
+            * The reason is that extractors pair a HEADING with the paragraphs
+            * that follow it, and `dt` cannot legally contain heading content -
+            * its content model excludes it - so there is no version of the
+            * definition list that gets a question treated as a heading. The
+            * FAQPage JSON-LD still carried them, which is why Google's rich
+            * results were fine and this went unnoticed; anything reading the
+            * DOM rather than the schema got nothing.
+            *
+            * The rendered result is identical - same classes, same spacing.
+            * This is purely about what a machine can lift out of it.
+            */}
+          <div className="mt-8 space-y-8">
             {FAQ.items.map((item) => (
               /*
                * An id per question, derived from the question itself, so every
@@ -620,11 +643,11 @@ export default function App() {
                * keep in sync with a question that gets reworded.
                */
               <div key={item.q} id={slug(item.q)} data-anim-item className="scroll-mt-24">
-                <dt className="font-display text-xl text-sand">{item.q}</dt>
-                <dd className="mt-3 max-w-xl text-sm leading-relaxed text-clay">{item.a}</dd>
+                <h3 className="font-display text-xl text-sand">{item.q}</h3>
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-clay">{item.a}</p>
               </div>
             ))}
-          </dl>
+          </div>
         </Section>
 
         {/* WAITLIST */}
